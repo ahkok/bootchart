@@ -5,17 +5,10 @@
  * Authors:
  *   Auke Kok <auke-jan.h.kok@intel.com>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 2 of the License.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; version 2
+ * of the License.
  */
 
 
@@ -40,6 +33,7 @@ struct block_stat_struct blockstat[MAXSAMPLES];
 struct cpu_stat_struct cpustat[MAXCPUS];
 int pscount;
 int relative;
+int filter = 1;
 int samples;
 double interval;
 FILE *of;
@@ -57,9 +51,9 @@ void signal_handler(int signum)
 int main(int argc, char *argv[])
 {
 	struct sigaction sig;
-	int len = 150; /* we record len+1 (1 start sample) */
-	int hz = 10;   /* 15 seconds log time */
-	char output_path[PATH_MAX] = "/var/log/";
+	int len = 750; /* we record len+1 (1 start sample) */
+	int hz = 50;   /* 15 seconds log time */
+	char output_path[PATH_MAX] = "/var/log";
 	char output_file[PATH_MAX];
 	char datestr[200];
 	time_t t;
@@ -71,13 +65,14 @@ int main(int argc, char *argv[])
 			{"freq", 1, NULL, 'f'},
 			{"samples", 1, NULL, 'n'},
 			{"output", 1, NULL, 'o'},
+			{"filter", 0, NULL, 'F'},
 			{"help", 0, NULL, 'h'},
 			{0, 0, NULL, 0}
 		};
 
 		int index = 0, c;
 
-		c = getopt_long(argc, argv, "rf:n:o:t:h", opts, &index);
+		c = getopt_long(argc, argv, "rf:n:o:F:h", opts, &index);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -86,6 +81,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'f':
 			hz = atoi(optarg);
+			break;
+		case 'F':
+			filter = 0;
 			break;
 		case 'n':
 			len = atoi(optarg);
@@ -99,6 +97,8 @@ int main(int argc, char *argv[])
 			fprintf(stderr, " --freq,    -f N          Sample frequency [%d]\n", hz);
 			fprintf(stderr, " --samples, -n N          Stop sampling at [%d] samples\n", len);
 			fprintf(stderr, " --output,  -o [PATH]     Path to output files [%s]\n", output_path);
+			fprintf(stderr, " --filter,  -F            Disable filtering of processes from the graph\n");
+			fprintf(stderr, "                          that are of less importance or short-lived\n");
 			fprintf(stderr, " --help,    -h            Display this message\n");
 			exit (EXIT_FAILURE);
 			break;
@@ -128,7 +128,6 @@ int main(int argc, char *argv[])
 	sigaction(SIGINT, &sig, NULL);
 
 	interval = (1.0 / hz) * 1000000000.0;
-	log_uptime();
 
 	/* main program loop */
 	while (!exiting) {
@@ -138,7 +137,13 @@ int main(int argc, char *argv[])
 		long newint_ns;
 
 		sampletime[samples] = gettime_ns();
-		log_sample(samples);
+
+		/* wait for /proc to become available, discarding samples */
+		if (!graph_start)
+			log_uptime();
+		else
+			log_sample(samples);
+
 		sample_stop = gettime_ns();
 
 		req.tv_sec = 0;
@@ -158,11 +163,16 @@ int main(int argc, char *argv[])
 				perror("nanosleep()");
 				exit (EXIT_FAILURE);
 			}
+
+			samples++;
 		} else {
+			/* oops, we took way too long */
 			overrun++;
+			/* calculate how many samples we lost and scrap them */
+			samples += -((int)(newint_ns / interval)) + 1;
 		}
 
-		if (++samples > len)
+		if (samples > len)
 			break;
 
 	}
@@ -179,8 +189,8 @@ int main(int argc, char *argv[])
 
 	fclose(of);
 
-	if (overrun)
-		fprintf(stderr, "Warning: sample time overrun %lu times", overrun);
+	if (overrun > 1)
+		fprintf(stderr, "Warning: sample time overrun %lu times\n", overrun);
 
 	return 0;
 }

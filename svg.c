@@ -5,17 +5,10 @@
  * Authors:
  *   Auke Kok <auke-jan.h.kok@intel.com>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 2 of the License.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; version 2
+ * of the License.
  */
 
 #include <stdio.h>
@@ -49,6 +42,7 @@ void svg_ps_bars(void)
 {
 	int i;
 	int j = 0;
+	double d;
 
 	/* surrounding box */
 	svg("\n\n<!-- bounding box -->\n");
@@ -58,13 +52,19 @@ void svg_ps_bars(void)
 	svg("style=\"fill:rgb(240,240,240);stroke-width:1;");
 	svg("stroke:rgb(192,192,192)\" />\n");
 
-	/* lines for each second */
 	svg("\n\n<!-- tick marks per second -->\n");
-	for (i = graph_start; i <= sampletime[samples-1]; i++) {
+	for (d = sampletime[0]; d <= sampletime[samples-1]; d++) {
+		/* lines for each second */
 		svg("<line x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" ",
-		    time_to_graph(i - graph_start), time_to_graph(i - graph_start), ps_to_graph(pscount));
-		svg("style=\"stroke-width:%i;", i % 5 ? 1 : 2);
+		    time_to_graph(d - graph_start), time_to_graph(d - graph_start),
+		    ps_to_graph(pscount));
+		svg("style=\"stroke-width:%i;", ((long)(d - graph_start)) % 5 ? 1 : 2);
 		svg("stroke:rgb(64,64,64)\" />\n");
+
+		/* time label */
+		svg("  <text x=\"%.03f\" y=\"%i\" font-family=\"Verdana\" font-size=\"10\">",
+		    time_to_graph(d - graph_start), -5);
+		svg("%.0f</text>\n", (d - graph_start));
 	}
 
 	/* ps boxes */
@@ -74,6 +74,20 @@ void svg_ps_bars(void)
 
 		if (!ps[i])
 			continue;
+
+		/* filters */
+		if (filter) {
+			if (ps[i]->first == ps[i]->last)
+				continue;
+
+			/*
+			 * TODO
+			 *
+			 * filter out:
+			 * - inactive kernel threads
+			 */
+		}
+
 		svg("  <rect x=\"%.03f\" y=\"%i\" width=\"%.03f\" height=\"%i\" ",
 		    time_to_graph(sampletime[ps[i]->first] - graph_start), ps_to_graph(j),
 		    time_to_graph(sampletime[ps[i]->last] - sampletime[ps[i]->first]), ps_to_graph(1));

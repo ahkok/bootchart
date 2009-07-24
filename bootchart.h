@@ -5,24 +5,17 @@
  * Authors:
  *   Auke Kok <auke-jan.h.kok@intel.com>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 2 of the License.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; version 2
+ * of the License.
  */
 
 
 #define VERSION "0.1"
 
 #define MAXCPUS         8
-#define MAXPIDS     65535
+#define MAXPIDS     64000
 #define MAXSAMPLES   4096
 
 
@@ -52,8 +45,6 @@ struct ps_sched_struct {
 
 /* process info */
 struct ps_struct {
-	struct ps_struct *next;
-	struct ps_struct *prev;
 
 	/* must match - otherwise it's a new process with same PID */
 	char name[16];
@@ -78,6 +69,7 @@ extern struct block_stat_struct blockstat[];
 extern struct cpu_stat_struct cpustat[];
 extern int pscount;
 extern int relative;
+extern int filter;
 extern int samples;
 extern double interval;
 

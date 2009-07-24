@@ -5,17 +5,10 @@
  * Authors:
  *   Auke Kok <auke-jan.h.kok@intel.com>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 2 of the License.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; version 2
+ * of the License.
  */
 
 #include <sys/time.h>
@@ -46,19 +39,21 @@ void log_uptime(void)
 
 	f = fopen("/proc/uptime", "r");
 	if (!f)
-		exit (EXIT_FAILURE);
-	if (!fscanf(f, "%s %*s", str))
-		exit (EXIT_FAILURE);
+		return;
+	if (!fscanf(f, "%s %*s", str)) {
+		fclose(f);
+		return;
+	}
 	fclose(f);
 	uptime = strtod(str, NULL);
 
 	now = gettime_ns();
 
 	/* start graph at kernel boot time */
-	if (!relative)
-		graph_start = now - uptime;
-	else
+	if (relative)
 		graph_start = now;
+	else
+		graph_start = now - uptime;
 }
 
 
@@ -66,11 +61,10 @@ void log_sample(int sample)
 {
 	FILE *f;
 	DIR *proc;
-	char key[32];
-	char val[32];
-	char rt[32];
-	char wt[32];
-	char wc[32];
+	char key[256];
+	char val[256];
+	char rt[256];
+	char wt[256];
 	int c;
 	int p;
 	struct dirent *ent;
@@ -144,8 +138,10 @@ void log_sample(int sample)
 		f = fopen(filename, "r");
 		if (!f)
 			continue;
-		if (!fscanf(f, "%s %s %s", rt, wt, wc))
+		if (!fscanf(f, "%s %s %*s", rt, wt)) {
+			fclose(f);
 			continue;
+		}
 		fclose(f);
 
 		if (!ps[pid]) {
@@ -168,20 +164,30 @@ void log_sample(int sample)
 			sprintf(filename, "/proc/%d/sched", pid);
 			f = fopen(filename, "r");
 
-			if (!fgets(line, 80, f))
+			if (!fgets(line, 79, f)) {
+				fclose(f);
 				continue;
-			if (!sscanf(line, "%s %*s %*s", key))
+			}
+			if (!sscanf(line, "%s %*s %*s", key)) {
+				fclose(f);
 				continue;
+			}
 
 			strncpy(ps[pid]->name, key, 16);
 			/* discard line 2 */
-			if (!fgets(line, 80, f))
+			if (!fgets(line, 79, f)) {
+				fclose(f);
 				continue;
+			}
 
-			if (!fgets(line, 80, f))
+			if (!fgets(line, 79, f)) {
+				fclose(f);
 				continue;
-			if (!sscanf(line, "%*s %*s %s", t))
+			}
+			if (!sscanf(line, "%*s %*s %s", t)) {
+				fclose(f);
 				continue;
+			}
 			fclose(f);
 
 			ps[pid]->starttime = strtod(t, NULL);
@@ -189,8 +195,12 @@ void log_sample(int sample)
 			/* ppid */
 			sprintf(filename, "/proc/%d/stat", pid);
 			f = fopen(filename, "r");
-			if (!fscanf(f, "%*s %*s %*s %i", &p))
+			if (!f)
 				continue;
+			if (!fscanf(f, "%*s %*s %*s %i", &p)) {
+				fclose(f);
+				continue;
+			}
 			fclose(f);
 			ps[pid]->ppid = p;
 
@@ -202,6 +212,8 @@ void log_sample(int sample)
 		ps[pid]->sample[sample].waittime = atoll(wt);
 
 	}
-}
 
+	// FIXME: why does this give glibc double free or crap?
+	closedir(proc);
+}
 
