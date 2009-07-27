@@ -15,7 +15,7 @@
 #define VERSION "0.1"
 
 #define MAXCPUS         8
-#define MAXPIDS     64000
+#define MAXPIDS     65535
 #define MAXSAMPLES   4096
 
 
@@ -71,6 +71,7 @@ extern int pscount;
 extern int relative;
 extern int filter;
 extern int samples;
+extern int cpus;
 extern double interval;
 
 extern FILE *of;

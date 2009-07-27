@@ -35,6 +35,7 @@ int pscount;
 int relative;
 int filter = 1;
 int samples;
+int cpus;
 double interval;
 FILE *of;
 
@@ -87,6 +88,10 @@ int main(int argc, char *argv[])
 			break;
 		case 'n':
 			len = atoi(optarg);
+			if (len > MAXSAMPLES) {
+				fprintf(stderr, "Error: samples exceeds maximum\n");
+				exit(EXIT_FAILURE);
+			}
 			break;
 		case 'o':
 			strncpy(output_path, optarg, PATH_MAX - 1);

@@ -102,7 +102,7 @@ void log_sample(int sample)
 		if (!fgets(line, 4095, f))
 			continue;
 
-		n = sscanf(line, "%s %*s %*s %*s %*s %*s %*s %*s %*s %*s %s %s", key, rt, wt);
+		n = sscanf(line, "%s %*s %*s %*s %*s %*s %*s %s %s", key, rt, wt);
 
 		if (n < 3)
 			continue;
@@ -111,6 +111,9 @@ void log_sample(int sample)
 			c = key[3] - '0';
 			cpustat[c].sample[sample].runtime = atoll(rt);
 			cpustat[c].sample[sample].waittime = atoll(wt);
+
+			if (c == cpus)
+				cpus = c + 1;
 		}
 	}
 
