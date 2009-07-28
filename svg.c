@@ -31,10 +31,138 @@ void svg_header(void)
 {
 	svg("<?xml version=\"1.0\" standalone=\"no\"?>\n");
 	svg("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" ");
-	svg("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n\n");
+	svg("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
 
 	svg("<svg width=\"100%%\" height=\"100%%\" version=\"1.1\" ");
 	svg("xmlns=\"http://www.w3.org/2000/svg\">\n\n");
+
+	/* style sheet */
+	svg("<defs>\n  <style type=\"text/css\">\n    <![CDATA[\n");
+
+	svg("      rect.cpu  { fill: rgb(64,64,240); stroke-width: 0; }\n");
+	svg("      rect.wait { fill: rgb(240,240,0); stroke-width: 0; }\n");
+	svg("      rect.bi   { fill: rgb(240,128,128); stroke-width: 0; }\n");
+	svg("      rect.bo   { fill: rgb(192,64,64); stroke-width: 0; }\n");
+	svg("      rect.ps   { fill: rgb(192,192,192); stroke-width: 1; stroke: rgb(128,128,128); fill-opacity: 0.5; }\n");
+	svg("      rect.box  { fill: rgb(240,240,240); stroke-width: 1; stroke: rgb(192,192,192); }\n");
+
+	svg("      line.box1 { stroke: rgb(64,64,64); stroke-width: 1; }\n");
+	svg("      line.box2 { stroke: rgb(64,64,64); stroke-width: 2; }\n");
+
+	svg("      text.sec  { font-family: Verdana; font-size: 10; }\n");
+	svg("      text.psnm { font-family: Verdana; font-size: 10; }\n");
+	
+	svg("    ]]>\n   </style>\n</defs>\n\n");
+
+}
+
+
+void svg_graph_box(int height)
+{
+	double d;
+	int i = 0;
+
+	/* outside box, fill */
+	svg("<rect class=\"box\" x=\"%.03f\" y=\"0\" width=\"%.03f\" height=\"%i\" />\n",
+	    time_to_graph(0),
+	    time_to_graph(sampletime[samples-1] - graph_start),
+	    ps_to_graph(height));
+
+	for (d = sampletime[0]; d <= sampletime[samples-1]; d += 1.0) {
+		/* lines for each second */
+		if (i % 5)
+			svg("<line class=\"box1\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
+			    time_to_graph(d - graph_start),
+			    time_to_graph(d - graph_start),
+			    ps_to_graph(height));
+		else
+			svg("<line class=\"box2\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
+			    time_to_graph(d - graph_start),
+			    time_to_graph(d - graph_start),
+			    ps_to_graph(height));
+
+		/* time label */
+		svg("  <text class=\"sec\" x=\"%.03f\" y=\"%i\" >%.01fs</text>\n",
+		    time_to_graph(d - graph_start),
+		    -5,
+		    d - graph_start);
+
+		i++;
+	}
+}
+
+
+void svg_io_bar(void)
+{
+	double max;
+	double max_bi = 0.0;
+	double max_bo = 0.0;
+	int max_bi_here = 0;
+	int max_bo_here = 0;
+	int i;
+
+	svg("<!-- IO utilization graph -->\n");
+
+	/* surrounding box */
+	svg_graph_box(5);
+
+	/* find the max IO first */
+	for (i = 1; i < samples; i++) {
+		if ((blockstat[i].bi - blockstat[i - 1].bi)  > max_bi) {
+			max_bi = blockstat[i].bi - blockstat[i - 1].bi;
+			max_bi_here = i;
+		}
+		if ((blockstat[i].bo - blockstat[i - 1].bo) > max_bo) {
+			max_bo = blockstat[i].bo - blockstat[i - 1].bo;
+			max_bo_here = i;
+		}
+	}
+
+
+	if (max_bi > max_bo)
+		max = max_bi;
+	else
+		max = max_bo;
+
+	/* plot bi/bo */
+	for (i = 1; i < samples; i++) {
+		double pbi;
+		double pbo;
+
+		pbi = (blockstat[i].bi - blockstat[i - 1].bi) / max;
+
+		if (pbi > 0.001)
+			svg("<rect class=\"bi\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
+			    time_to_graph(sampletime[i - 1] - graph_start),
+			    100.0 - (pbi * 100.0),
+			    time_to_graph(sampletime[i] - sampletime[i - 1]),
+			    pbi * 100.0);
+
+		/* draw bo OVER bi (assume bo < bi) */
+		pbo = (blockstat[i].bo - blockstat[i - 1].bo) / max;
+
+		if (pbo > 0.001)
+			svg("<rect class=\"bo\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
+			    time_to_graph(sampletime[i - 1] - graph_start),
+			    100.0 - (pbo * 100.0),
+			    time_to_graph(sampletime[i] - sampletime[i - 1]),
+			    pbo * 100.0);
+
+		/* labels around highest bi/bo values */
+		if (i == max_bi_here) {
+			svg("  <text class=\"sec\" x=\"%.03f\" y=\"%.03f\">%0.2fmb/sec</text>\n",
+			    time_to_graph(sampletime[i] - graph_start) + 5,
+			    100.0 - (pbi * 100.0),
+			    max_bi / 1024.0 / (interval / 1000000000.0));
+		}
+
+		if (i == max_bo_here) {
+			svg("  <text class=\"sec\" x=\"%.03f\" y=\"%.03f\">%0.2fmb/sec</text>\n",
+			    time_to_graph(sampletime[i] - graph_start) + 5,
+			    100.0 - (pbo * 100.0),
+			    max_bo / 1024.0 / (interval / 1000000000.0));
+		}
+	}
 }
 
 
@@ -42,13 +170,10 @@ void svg_cpu_bar(void)
 {
 	int i;
 
+	svg("<!-- CPU utilization graph -->\n");
+
 	/* surrounding box */
-	svg("\n\n<!-- CPU utilization graph -->\n");
-	svg("<rect x=\"%.03f\" y=\"0\" width=\"%.03f\" height=\"%i\" ",
-	    time_to_graph(0),
-	    time_to_graph(sampletime[samples-1] - graph_start), ps_to_graph(5));
-	svg("style=\"fill:rgb(240,240,240);stroke-width:1;");
-	svg("stroke:rgb(192,192,192)\" />\n\n");
+	svg_graph_box(5);
 
 	/* bars for each sample, proportional to the CPU util. */
 	for (i = 1; i < samples; i++) {
@@ -71,12 +196,13 @@ void svg_cpu_bar(void)
 		if (ptrt > 1.0)
 			ptrt = 1.0;
 
-		svg("<rect x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" ",
-		    time_to_graph(sampletime[i - 1] - graph_start),
-		    100.0 - (ptrt * 100.0),
-		    time_to_graph(sampletime[i] - sampletime[i - 1]),
-		    ptrt * 100.0);
-		svg("style=\"fill:rgb(64,240,64);stroke-width:0;\" />\n");
+		if (ptrt > 0.001) {
+			svg("<rect class=\"cpu\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
+			    time_to_graph(sampletime[i - 1] - graph_start),
+			    100.0 - (ptrt * 100.0),
+			    time_to_graph(sampletime[i] - sampletime[i - 1]),
+			    ptrt * 100.0);
+		}
 	}
 }
 
@@ -84,13 +210,10 @@ void svg_wait_bar(void)
 {
 	int i;
 
+	svg("<!-- Wait time aggregation box -->\n");
+
 	/* surrounding box */
-	svg("\n\n<!-- Wait time aggregation box -->\n");
-	svg("<rect x=\"%.03f\" y=\"0\" width=\"%.03f\" height=\"%i\" ",
-	    time_to_graph(0),
-	    time_to_graph(sampletime[samples-1] - graph_start), ps_to_graph(5));
-	svg("style=\"fill:rgb(240,240,240);stroke-width:1;");
-	svg("stroke:rgb(192,192,192)\" />\n\n");
+	svg_graph_box(5);
 
 	/* bars for each sample, proportional to the CPU util. */
 	for (i = 1; i < samples; i++) {
@@ -113,12 +236,13 @@ void svg_wait_bar(void)
 		if (ptwt > 1.0)
 			ptwt = 1.0;
 
-		svg("<rect x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" ",
-		    time_to_graph(sampletime[i - 1] - graph_start),
-		    (100.0 - (ptwt * 100.0)),
-		    time_to_graph(sampletime[i] - sampletime[i - 1]),
-		    ptwt * 100.0);
-		svg("style=\"fill:rgb(64,64,240);stroke-width:0;\" />\n");
+		if (ptwt > 0.001) {
+			svg("<rect class=\"wait\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
+			    time_to_graph(sampletime[i - 1] - graph_start),
+			    (100.0 - (ptwt * 100.0)),
+			    time_to_graph(sampletime[i] - sampletime[i - 1]),
+			    ptwt * 100.0);
+		}
 	}
 }
 
@@ -127,18 +251,15 @@ void svg_ps_bars(void)
 {
 	int i;
 	int j = 0;
-	double d;
+
+	svg("<!-- Process graph -->\n");
 
 	/* surrounding box */
-	svg("\n\n<!-- Process graph -->\n");
-	svg("<rect x=\"%.03f\" y=\"0\" width=\"%.03f\" height=\"%i\" ",
-	    time_to_graph(0),
-	    time_to_graph(sampletime[samples-1] - graph_start), ps_to_graph(pscount));
-	svg("style=\"fill:rgb(240,240,240);stroke-width:1;");
-	svg("stroke:rgb(192,192,192)\" />\n");
+	svg_graph_box(pscount);
 
 	/* ps boxes */
 	for (i = 0; i < MAXPIDS; i++) {
+		double starttime;
 		int t;
 
 		if (!ps[i])
@@ -157,11 +278,14 @@ void svg_ps_bars(void)
 			 */
 		}
 
-		svg("  <rect x=\"%.03f\" y=\"%i\" width=\"%.03f\" height=\"%i\" ",
-		    time_to_graph(sampletime[ps[i]->first] - graph_start), ps_to_graph(j),
-		    time_to_graph(sampletime[ps[i]->last] - sampletime[ps[i]->first]), ps_to_graph(1));
-		svg("style=\"fill:rgb(192,192,192);stroke-width:1;");
-		svg("stroke:rgb(128,128,128);fill-opacity:0.5\" />\n");
+		starttime = sampletime[ps[i]->first];
+
+		if (starttime < graph_start)
+			starttime = graph_start;
+
+		svg("  <rect class=\"ps\" x=\"%.03f\" y=\"%i\" width=\"%.03f\" height=\"%i\" />\n",
+		    time_to_graph(starttime - graph_start), ps_to_graph(j),
+		    time_to_graph(sampletime[ps[i]->last] - starttime), ps_to_graph(1));
 
 		/* paint cpu load over these */
 		for (t = ps[i]->first + 1; t < ps[i]->last; t++) {
@@ -184,56 +308,40 @@ void svg_ps_bars(void)
 			if ((prt < 0.1) && (wrt < 0.1)) /* =~ 26 (color threshold) */
 				continue;
 
-			svg("<rect x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" ",
+			svg("    <rect class=\"cpu\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 			    time_to_graph(sampletime[t - 1] - graph_start),
 			    ps_to_graph(j + (1.0 - prt)),
 			    time_to_graph(sampletime[t] - sampletime[t - 1]),
 			    ps_to_graph(prt));
-			svg("style=\"fill:rgb(64,240,64);stroke-width:0;\n");
-			svg("fill-opacity:%.03f\" />\n", prt);
 
-			svg("<rect x=\"%.03f\" y=\"%i\" width=\"%.03f\" height=\"%.03f\" ",
+			svg("    <rect class=\"wait\" x=\"%.03f\" y=\"%i\" width=\"%.03f\" height=\"%.03f\" />\n",
 			    time_to_graph(sampletime[t - 1] - graph_start),
 			    ps_to_graph(j),
 			    time_to_graph(sampletime[t] - sampletime[t - 1]),
 			    ps_to_graph(wrt));
-			svg("style=\"fill:rgb(64,64,240);stroke-width:0;\n");
-			svg("fill-opacity:%.03f\" />\n", wrt);
 		}
-		svg("\n");
 
 		/* text label of process name */
-		svg("  <text x=\"%.03f\" y=\"%i\" font-family=\"Verdana\" font-size=\"10\">\n",
-		    time_to_graph(sampletime[ps[i]->first] - graph_start) + 5, ps_to_graph(j) + 15);
-		svg("%s [%i]\n", ps[i]->name, ps[i]->pid);
-		svg("  </text>\n");
-
+		svg("  <text class=\"psnm\" x=\"%.03f\" y=\"%i\">%s [%i]</text>\n",
+		    time_to_graph(sampletime[ps[i]->first] - graph_start) + 5,
+		    ps_to_graph(j) + 15,
+		    ps[i]->name,
+		    ps[i]->pid);
 
 		j++; /* count boxes */
 
+		svg("\n");
 	}
-
-	/* bounding box, ticks */
-	for (d = sampletime[0]; d <= sampletime[samples-1]; d++) {
-		/* lines for each second */
-		svg("<line x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" ",
-		    time_to_graph(d - graph_start), time_to_graph(d - graph_start),
-		    ps_to_graph(pscount));
-		svg("style=\"stroke-width:%i;", ((long)(d - graph_start)) % 5 ? 1 : 2);
-		svg("stroke:rgb(64,64,64)\" />\n");
-
-		/* time label */
-		svg("  <text x=\"%.03f\" y=\"%i\" font-family=\"Verdana\" font-size=\"10\">",
-		    time_to_graph(d - graph_start), -5);
-		svg("%.0f</text>\n", (d - graph_start));
-	}
-
 }
 
 
 void svg_do(void)
 {
 	svg_header();
+
+	svg("<g transform=\"translate(0,0)\">\n");
+	svg_io_bar();
+	svg("</g>\n\n");
 
 	svg("<g transform=\"translate(0,200)\">\n");
 	svg_cpu_bar();

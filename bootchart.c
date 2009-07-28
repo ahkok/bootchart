@@ -134,6 +134,8 @@ int main(int argc, char *argv[])
 
 	interval = (1.0 / hz) * 1000000000.0;
 
+	log_uptime();
+
 	/* main program loop */
 	while (!exiting) {
 		int res;
@@ -168,14 +170,13 @@ int main(int argc, char *argv[])
 				perror("nanosleep()");
 				exit (EXIT_FAILURE);
 			}
-
-			samples++;
 		} else {
-			/* oops, we took way too long */
 			overrun++;
 			/* calculate how many samples we lost and scrap them */
-			samples += -((int)(newint_ns / interval)) + 1;
+			len = len + ((int)(newint_ns / interval));
 		}
+
+		samples++;
 
 		if (samples > len)
 			break;
@@ -194,6 +195,7 @@ int main(int argc, char *argv[])
 
 	fclose(of);
 
+	/* don't complain when overrun once, happens most commonly on 1st sample */
 	if (overrun > 1)
 		fprintf(stderr, "Warning: sample time overrun %lu times\n", overrun);
 
