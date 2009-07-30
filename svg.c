@@ -33,6 +33,8 @@
 
 #define svg(a...) do { char str[8092]; sprintf(str, ## a); fputs(str, of); fflush(of); } while (0)
 
+int filtered;
+
 
 void svg_header(void)
 {
@@ -46,22 +48,25 @@ void svg_header(void)
 	/* style sheet */
 	svg("<defs>\n  <style type=\"text/css\">\n    <![CDATA[\n");
 
-	svg("      rect.cpu  { fill: rgb(64,64,240); stroke-width: 0; }\n");
-	svg("      rect.wait { fill: rgb(240,240,0); stroke-width: 0; }\n");
-	svg("      rect.bi   { fill: rgb(240,128,128); stroke-width: 0; }\n");
-	svg("      rect.bo   { fill: rgb(192,64,64); stroke-width: 0; }\n");
-	svg("      rect.ps   { fill: rgb(192,192,192); stroke-width: 1; stroke: rgb(128,128,128); fill-opacity: 0.5; }\n");
-	svg("      rect.box  { fill: rgb(240,240,240); stroke-width: 1; stroke: rgb(192,192,192); }\n");
+	svg("      rect      { stroke-width: 1; }\n");
+	svg("      rect.cpu  { fill: rgb(64,64,240); stroke-width: 0; fill-opacity: 0.7; }\n");
+	svg("      rect.wait { fill: rgb(240,240,0); stroke-width: 0; fill-opacity: 0.7; }\n");
+	svg("      rect.bi   { fill: rgb(240,128,128); stroke-width: 0; fill-opacity: 0.7; }\n");
+	svg("      rect.bo   { fill: rgb(192,64,64); stroke-width: 0; fill-opacity: 0.7; }\n");
+	svg("      rect.ps   { fill: rgb(192,192,192); stroke: rgb(128,128,128); fill-opacity: 0.7; }\n");
+	svg("      rect.box  { fill: rgb(240,240,240); stroke: rgb(192,192,192); }\n");
 
-	svg("      line.box1 { stroke: rgb(64,64,64); stroke-width: 1; }\n");
-	svg("      line.box2 { stroke: rgb(64,64,64); stroke-width: 2; }\n");
-	svg("      line.dot  { stroke: rgb(64,64,64); stroke-width: 1; stroke-dasharray: 1 2; }\n");
+	svg("      line      { stroke: rgb(64,64,64); stroke-width: 1; }\n");
+	svg("//    line.box1 { }\n");
+	svg("      line.box2 { stroke-width: 2; }\n");
+	svg("      line.box3 { stroke: rgb(224,224,224); stroke-width: 1; }\n");
+	svg("      line.dot  { stroke-dasharray: 1 2; }\n");
 
-	svg("      text.sec  { font-family: Verdana; font-size: 10; }\n");
-	svg("      text.psnm { font-family: Verdana; font-size: 10; }\n");
-
-	svg("      text.t1   { font-family: Verdana; font-size: 24; }\n");
-	svg("      text.t2   { font-family: Verdana; font-size: 12; }\n");
+	svg("      text      { font-family: Verdana; font-size: 10; }\n");
+	svg("      text.sec  { font-size: 8; }\n");
+	svg("//    text.psnm { }\n");
+	svg("      text.t1   { font-size: 24; }\n");
+	svg("      text.t2   { font-size: 12; }\n");
 	
 	svg("    ]]>\n   </style>\n</defs>\n\n");
 
@@ -147,10 +152,10 @@ void svg_title(void)
 	    model);
 	svg("<text class=\"t2\" x=\"20\" y=\"95\">Boot options: %s</text>\n",
 	    cmdline);
-	svg("<text class=\"t2\" x=\"20\" y=\"110\">Graph data: %i samples/sec, recorded %i total, dropped %i samples</text>\n",
-	    hz, len, overrun);
-	svg("<text class=\"t2\" x=\"20\" y=\"125\">Build: %s</text>\n",
+	svg("<text class=\"t2\" x=\"20\" y=\"110\">Build: %s</text>\n",
 	    build);
+	svg("<text class=\"sec\" x=\"20\" y=\"125\">Graph data: %i samples/sec, recorded %i total, dropped %i samples, filtered %i processes</text>\n",
+	    hz, len, overrun, filtered);
 }
 
 
@@ -165,24 +170,30 @@ void svg_graph_box(int height)
 	    time_to_graph(sampletime[samples-1] - graph_start),
 	    ps_to_graph(height));
 
-	for (d = graph_start; d <= sampletime[samples-1]; d += 1.0) {
+	for (d = graph_start; d <= sampletime[samples-1]; d += 0.1) {
 		/* lines for each second */
-		if (i % 5)
+		if (i % 50 == 0)
+			svg("  <line class=\"box2\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
+			    time_to_graph(d - graph_start),
+			    time_to_graph(d - graph_start),
+			    ps_to_graph(height));
+		else if (i % 10 == 0)
 			svg("  <line class=\"box1\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
 			    time_to_graph(d - graph_start),
 			    time_to_graph(d - graph_start),
 			    ps_to_graph(height));
 		else
-			svg(  "<line class=\"box2\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
+			svg("  <line class=\"box3\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
 			    time_to_graph(d - graph_start),
 			    time_to_graph(d - graph_start),
 			    ps_to_graph(height));
 
 		/* time label */
-		svg("  <text class=\"sec\" x=\"%.03f\" y=\"%i\" >%.01fs</text>\n",
-		    time_to_graph(d - graph_start),
-		    -5,
-		    d - graph_start);
+		if (i % 10 == 0)
+			svg("  <text class=\"sec\" x=\"%.03f\" y=\"%i\" >%.01fs</text>\n",
+			    time_to_graph(d - graph_start),
+			    -5,
+			    d - graph_start);
 
 		i++;
 	}
@@ -472,6 +483,10 @@ int ps_filter(int pid)
 	if (ps[pid]->first == ps[pid]->last)
 		return -1;
 
+	/* don't filter kthreadd */
+	if (pid == 2)
+		return 0;
+
 	/* filter threads that don't do anything and are children of init or kthreadd,
 	 * most likely kernel threads that idle along */
 	if (ps[pid]->ppid <= 2) { /* 2 == kthreadd */
@@ -500,6 +515,8 @@ void svg_ps_bars(void)
 	while ((i = get_next_ps(i))) {
 		if (!ps_filter(i))
 			pc++;
+		else
+			filtered++;
 	}
 
 	/* surrounding box */
@@ -520,14 +537,13 @@ void svg_ps_bars(void)
 		/* filter */
 		if (ps_filter(i)) {
 			/* if this is the last child, we might still need to draw a connecting line */
-			continue;
-			/* one vertical line connecting all the horizontal ones up */
-			if ((!ps[i]->next) && (ps[i]->ppid))
+			if ((!ps[i]->next) && (ps[ps[i]->ppid]))
 				svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%i\" x2=\"%.03f\" y2=\"%.03f\" />\n",
 				    ps[ps[i]->ppid]->pos_x,
-				    ps_to_graph(j) + 10, /* whee, use the last value here */
+				    ps_to_graph(j-1) + 10, /* whee, use the last value here */
 				    ps[ps[i]->ppid]->pos_x,
 				    ps[ps[i]->ppid]->pos_y);
+			continue;
 		}
 
 		/* it would be nice if we could use exec_start from /proc/pid/sched,
@@ -565,22 +581,26 @@ void svg_ps_bars(void)
 			if ((prt < 0.1) && (wrt < 0.1)) /* =~ 26 (color threshold) */
 				continue;
 
-			svg("    <rect class=\"cpu\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
-			    time_to_graph(sampletime[t - 1] - graph_start),
-			    ps_to_graph(j + (1.0 - prt)),
-			    time_to_graph(sampletime[t] - sampletime[t - 1]),
-			    ps_to_graph(prt));
-
 			svg("    <rect class=\"wait\" x=\"%.03f\" y=\"%i\" width=\"%.03f\" height=\"%.03f\" />\n",
 			    time_to_graph(sampletime[t - 1] - graph_start),
 			    ps_to_graph(j),
 			    time_to_graph(sampletime[t] - sampletime[t - 1]),
 			    ps_to_graph(wrt));
+
+			/* draw cpu over wait - TODO figure out how/why run + wait > interval */
+			svg("    <rect class=\"cpu\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
+			    time_to_graph(sampletime[t - 1] - graph_start),
+			    ps_to_graph(j + (1.0 - prt)),
+			    time_to_graph(sampletime[t] - sampletime[t - 1]),
+			    ps_to_graph(prt));
 		}
 
 		/* text label of process name */
 		svg("  <text class=\"psnm\" x=\"%.03f\" y=\"%i\">%s [%i]</text>\n",
-		    time_to_graph(sampletime[ps[i]->first] - graph_start) + 5,
+		    /* need about 1 1/4 seconds width to draw label inside the ps box */
+		    (sampletime[ps[i]->last] - sampletime[ps[i]->first] < 1.25) ?
+		 	time_to_graph(sampletime[ps[i]->last] - graph_start) + 5:
+		 	time_to_graph(sampletime[ps[i]->first] - graph_start) + 5,
 		    ps_to_graph(j) + 14,
 		    ps[i]->name,
 		    ps[i]->pid);
@@ -614,10 +634,6 @@ void svg_do(void)
 {
 	svg_header();
 
-	svg("<g transform=\"translate(10,  0)\">\n");
-	svg_title();
-	svg("</g>\n\n");
-
 	svg("<g transform=\"translate(10,200)\">\n");
 	svg_io_bi_bar();
 	svg("</g>\n\n");
@@ -636,6 +652,10 @@ void svg_do(void)
 
 	svg("<g transform=\"translate(10,800)\">\n");
 	svg_ps_bars();
+	svg("</g>\n\n");
+
+	svg("<g transform=\"translate(10,  0)\">\n");
+	svg_title();
 	svg("</g>\n\n");
 
 	/* svg footer */
