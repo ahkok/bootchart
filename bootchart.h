@@ -45,6 +45,8 @@ struct ps_sched_struct {
 
 /* process info */
 struct ps_struct {
+	struct ps_struct *children;
+	struct ps_struct *next;
 
 	/* must match - otherwise it's a new process with same PID */
 	char name[16];
@@ -57,6 +59,10 @@ struct ps_struct {
 
 	/* records actual start time, may be way before bootchart runs */
 	double starttime;
+
+	/* for drawing connection lines later */
+	double pos_x;
+	double pos_y;
 
 	struct ps_sched_struct sample[MAXSAMPLES];
 };
@@ -72,6 +78,9 @@ extern int relative;
 extern int filter;
 extern int samples;
 extern int cpus;
+extern int len;
+extern int hz;
+extern int overrun;
 extern double interval;
 
 extern FILE *of;

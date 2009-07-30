@@ -38,6 +38,9 @@ int samples;
 int cpus;
 double interval;
 FILE *of;
+int len = 750; /* we record len+1 (1 start sample) */
+int hz = 50;   /* 15 seconds log time */
+int overrun = 0;
 
 int exiting = 0;
 
@@ -52,13 +55,10 @@ void signal_handler(int signum)
 int main(int argc, char *argv[])
 {
 	struct sigaction sig;
-	int len = 750; /* we record len+1 (1 start sample) */
-	int hz = 50;   /* 15 seconds log time */
 	char output_path[PATH_MAX] = "/var/log";
 	char output_file[PATH_MAX];
 	char datestr[200];
 	time_t t;
-	long overrun = 0;
 
 	while (1) {
 		static struct option opts[] = {
@@ -188,8 +188,10 @@ int main(int argc, char *argv[])
 	sprintf(output_file, "%s/bootchart-%s.svg", output_path, datestr);
 
 	of = fopen(output_file, "w");
-	if (!of)
+	if (!of) {
+		perror("open output_file");
 		exit (EXIT_FAILURE);
+	}
 
 	svg_do();
 
@@ -197,7 +199,7 @@ int main(int argc, char *argv[])
 
 	/* don't complain when overrun once, happens most commonly on 1st sample */
 	if (overrun > 1)
-		fprintf(stderr, "Warning: sample time overrun %lu times\n", overrun);
+		fprintf(stderr, "Warning: sample time overrun %i times\n", overrun);
 
 	return 0;
 }

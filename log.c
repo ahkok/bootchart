@@ -150,6 +150,7 @@ void log_sample(int sample)
 		if (!ps[pid]) {
 			char line[80];
 			char t[32];
+			struct ps_struct *parent;
 
 			pscount++;
 
@@ -166,6 +167,8 @@ void log_sample(int sample)
 			/* get name, start time */
 			sprintf(filename, "/proc/%d/sched", pid);
 			f = fopen(filename, "r");
+			if (!f)
+				continue;
 
 			if (!fgets(line, 79, f)) {
 				fclose(f);
@@ -193,7 +196,7 @@ void log_sample(int sample)
 			}
 			fclose(f);
 
-			ps[pid]->starttime = strtod(t, NULL);
+			ps[pid]->starttime = strtod(t, NULL) / 1000.0;
 
 			/* ppid */
 			sprintf(filename, "/proc/%d/stat", pid);
@@ -207,12 +210,64 @@ void log_sample(int sample)
 			fclose(f);
 			ps[pid]->ppid = p;
 
+			/*
+			 * setup child pointers
+			 *
+			 * these are used to paint the tree coherently later
+			 * each parent has a LL of children, and a LL of siblings
+			 */
+			if (pid == 1)
+				continue; /* nothing to do for init atm */
+
+			parent = ps[ps[pid]->ppid];
+
+			if (!parent) {
+				/* fix this asap */
+				ps[pid]->ppid = 1;
+				parent = ps[1];
+			}
+
+			if (!parent->children) {
+				/* it's the first child */
+				parent->children = ps[pid];
+			} else {
+				/* walk all children and append */
+				struct ps_struct *children;
+				children = parent->children;
+				while (children->next)
+					children = children->next;
+				children->next = ps[pid];
+			}
+
+
 		}
 
 		ps[pid]->pid = pid;
 		ps[pid]->last = sample;
 		ps[pid]->sample[sample].runtime = atoll(rt);
 		ps[pid]->sample[sample].waittime = atoll(wt);
+
+		/* catch process rename, try to randomize time */
+		if (((samples - ps[pid]->first) + pid) % (hz / 4) == 0) {
+			char line[80];
+
+			/* re-fetch name */
+			sprintf(filename, "/proc/%d/sched", pid);
+			f = fopen(filename, "r");
+
+			if (!fgets(line, 79, f)) {
+				fclose(f);
+				continue;
+			}
+			if (!sscanf(line, "%s %*s %*s", key)) {
+				fclose(f);
+				continue;
+			}
+
+			strncpy(ps[pid]->name, key, 16);
+			fclose(f);
+
+		}
 
 	}
 
