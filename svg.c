@@ -31,7 +31,7 @@
 #define max(x, y) (((x) > (y)) ? (x) : (y))
 #define min(x, y) (((x) < (y)) ? (x) : (y))
 
-#define svg(a...) do { char str[8092]; sprintf(str, ## a); fputs(str, of); } while (0)
+#define svg(a...) do { char str[8092]; sprintf(str, ## a); fputs(str, of); fflush(of); } while (0)
 
 
 void svg_header(void)
@@ -189,19 +189,16 @@ void svg_graph_box(int height)
 }
 
 
-void svg_io_bar(void)
+void svg_io_bi_bar(void)
 {
-	double max;
-	double max_bi = 0.0;
-	double max_bo = 0.0;
+	double max = 0.0;
 	double range;
-	int max_bi_here = 0;
-	int max_bo_here = 0;
+	int max_here = 0;
 	int i;
 
-	svg("<!-- IO utilization graph -->\n");
+	svg("<!-- IO utilization graph - In -->\n");
 
-	svg("<text class=\"t2\" x=\"5\" y=\"-15\">IO utilization</text>\n");
+	svg("<text class=\"t2\" x=\"5\" y=\"-15\">IO utilization - read</text>\n");
 
 	/*
 	 * calculate rounding range
@@ -227,31 +224,18 @@ void svg_io_bar(void)
 		stop = min(i + (range / 2), samples - 1);
 
 		tot = (double)(blockstat[stop].bi - blockstat[start].bi) / (stop - start);
-		if (tot > max_bi) {
-			max_bi = tot;
-			max_bi_here = i;
-		}
-
-		tot = (double)(blockstat[stop].bo - blockstat[start].bo) / (stop - start);
-		if (tot > max_bo) {
-			max_bo = tot;
-			max_bo_here = i;
+		if (tot > max) {
+			max = tot;
+			max_here = i;
 		}
 	}
 
-
-	if (max_bi > max_bo)
-		max = max_bi;
-	else
-		max = max_bo;
-
-	/* plot bi/bo */
+	/* plot bi */
 	for (i = 1; i < samples; i++) {
 		int start;
 		int stop;
 		double tot;
 		double pbi;
-		double pbo;
 
 		start = max(i - ((range / 2) - 1), 0);
 		stop = min(i + (range / 2), samples);
@@ -266,7 +250,67 @@ void svg_io_bar(void)
 			    time_to_graph(sampletime[i] - sampletime[i - 1]),
 			    pbi * 100.0);
 
-		/* draw bo OVER bi (assume bo < bi) */
+		/* labels around highest value */
+		if (i == max_here) {
+			svg("  <text class=\"sec\" x=\"%.03f\" y=\"%.03f\">%0.2fmb/sec</text>\n",
+			    time_to_graph(sampletime[i] - graph_start) + 5,
+			    (100.0 - (pbi * 100.0)) + 15,
+			    max / 1024.0 / (interval / 1000000000.0));
+		}
+	}
+}
+
+void svg_io_bo_bar(void)
+{
+	double max = 0.0;
+	double range;
+	int max_here = 0;
+	int i;
+
+	svg("<!-- IO utilization graph - out -->\n");
+
+	svg("<text class=\"t2\" x=\"5\" y=\"-15\">IO utilization - write</text>\n");
+
+	/*
+	 * calculate rounding range
+	 *
+	 * We need to round IO data since IO block data is not updated on
+	 * each poll. Applying a smoothing function loses some burst data,
+	 * so keep the smoothing range short.
+	 */
+	range = 0.25 / (1.0 / hz);
+	if (range < 2.0)
+		range = 2.0; /* no smoothing */
+
+	/* surrounding box */
+	svg_graph_box(5);
+
+	/* find the max IO first */
+	for (i = 1; i < samples; i++) {
+		int start;
+		int stop;
+		double tot;
+
+		start = max(i - ((range / 2) - 1), 0);
+		stop = min(i + (range / 2), samples - 1);
+
+		tot = (double)(blockstat[stop].bo - blockstat[start].bo) / (stop - start);
+		if (tot > max) {
+			max = tot;
+			max_here = i;
+		}
+	}
+
+	/* plot bo */
+	for (i = 1; i < samples; i++) {
+		int start;
+		int stop;
+		double tot;
+		double pbo;
+
+		start = max(i - ((range / 2) - 1), 0);
+		stop = min(i + (range / 2), samples);
+
 		tot = (double)(blockstat[stop].bo - blockstat[start].bo) / (stop - start);
 		pbo = tot / max;
 
@@ -277,19 +321,12 @@ void svg_io_bar(void)
 			    time_to_graph(sampletime[i] - sampletime[i - 1]),
 			    pbo * 100.0);
 
-		/* labels around highest bi/bo values */
-		if (i == max_bi_here) {
-			svg("  <text class=\"sec\" x=\"%.03f\" y=\"%.03f\">%0.2fmb/sec</text>\n",
-			    time_to_graph(sampletime[i] - graph_start) + 5,
-			    (100.0 - (pbi * 100.0)) + 15,
-			    max_bi / 1024.0 / (interval / 1000000000.0));
-		}
-
-		if (i == max_bo_here) {
+		/* labels around highest bo value */
+		if (i == max_here) {
 			svg("  <text class=\"sec\" x=\"%.03f\" y=\"%.03f\">%0.2fmb/sec</text>\n",
 			    time_to_graph(sampletime[i] - graph_start) + 5,
 			    (100.0 - (pbo * 100.0)),
-			    max_bo / 1024.0 / (interval / 1000000000.0));
+			    max / 1024.0 / (interval / 1000000000.0));
 		}
 	}
 }
@@ -477,9 +514,21 @@ void svg_ps_bars(void)
 		if (!ps[i])
 			continue;
 
-		/* filters */
-		if (ps_filter(i))
+		/* leave some trace of what we actually filtered etc. */
+		svg("<!-- %s [%i] ppid=%i -->\n", ps[i]->name, i, ps[i]->ppid);
+
+		/* filter */
+		if (ps_filter(i)) {
+			/* if this is the last child, we might still need to draw a connecting line */
 			continue;
+			/* one vertical line connecting all the horizontal ones up */
+			if ((!ps[i]->next) && (ps[i]->ppid))
+				svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%i\" x2=\"%.03f\" y2=\"%.03f\" />\n",
+				    ps[ps[i]->ppid]->pos_x,
+				    ps_to_graph(j) + 10, /* whee, use the last value here */
+				    ps[ps[i]->ppid]->pos_x,
+				    ps[ps[i]->ppid]->pos_y);
+		}
 
 		/* it would be nice if we could use exec_start from /proc/pid/sched,
 		 * but it's unreliable and gives bogus numbers */
@@ -570,18 +619,22 @@ void svg_do(void)
 	svg("</g>\n\n");
 
 	svg("<g transform=\"translate(10,200)\">\n");
-	svg_io_bar();
+	svg_io_bi_bar();
 	svg("</g>\n\n");
 
 	svg("<g transform=\"translate(10,350)\">\n");
-	svg_cpu_bar();
+	svg_io_bo_bar();
 	svg("</g>\n\n");
 
 	svg("<g transform=\"translate(10,500)\">\n");
-	svg_wait_bar();
+	svg_cpu_bar();
 	svg("</g>\n\n");
 
 	svg("<g transform=\"translate(10,650)\">\n");
+	svg_wait_bar();
+	svg("</g>\n\n");
+
+	svg("<g transform=\"translate(10,800)\">\n");
 	svg_ps_bars();
 	svg("</g>\n\n");
 
