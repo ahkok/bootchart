@@ -48,25 +48,25 @@ void svg_header(void)
 	/* style sheet */
 	svg("<defs>\n  <style type=\"text/css\">\n    <![CDATA[\n");
 
-	svg("      rect      { stroke-width: 1; }\n");
-	svg("      rect.cpu  { fill: rgb(64,64,240); stroke-width: 0; fill-opacity: 0.7; }\n");
-	svg("      rect.wait { fill: rgb(240,240,0); stroke-width: 0; fill-opacity: 0.7; }\n");
-	svg("      rect.bi   { fill: rgb(240,128,128); stroke-width: 0; fill-opacity: 0.7; }\n");
-	svg("      rect.bo   { fill: rgb(192,64,64); stroke-width: 0; fill-opacity: 0.7; }\n");
-	svg("      rect.ps   { fill: rgb(192,192,192); stroke: rgb(128,128,128); fill-opacity: 0.7; }\n");
-	svg("      rect.box  { fill: rgb(240,240,240); stroke: rgb(192,192,192); }\n");
+	svg("      rect       { stroke-width: 1; }\n");
+	svg("      rect.cpu   { fill: rgb(64,64,240); stroke-width: 0; fill-opacity: 0.7; }\n");
+	svg("      rect.wait  { fill: rgb(240,240,0); stroke-width: 0; fill-opacity: 0.7; }\n");
+	svg("      rect.bi    { fill: rgb(240,128,128); stroke-width: 0; fill-opacity: 0.7; }\n");
+	svg("      rect.bo    { fill: rgb(192,64,64); stroke-width: 0; fill-opacity: 0.7; }\n");
+	svg("      rect.ps    { fill: rgb(192,192,192); stroke: rgb(128,128,128); fill-opacity: 0.7; }\n");
+	svg("      rect.box   { fill: rgb(240,240,240); stroke: rgb(192,192,192); }\n");
 
-	svg("      line      { stroke: rgb(64,64,64); stroke-width: 1; }\n");
-	svg("//    line.box1 { }\n");
-	svg("      line.box2 { stroke-width: 2; }\n");
-	svg("      line.box3 { stroke: rgb(224,224,224); stroke-width: 1; }\n");
-	svg("      line.dot  { stroke-dasharray: 1 2; }\n");
+	svg("      line       { stroke: rgb(64,64,64); stroke-width: 1; }\n");
+	svg("//    line.sec1  { }\n");
+	svg("      line.sec5  { stroke-width: 2; }\n");
+	svg("      line.sec01 { stroke: rgb(224,224,224); stroke-width: 1; }\n");
+	svg("      line.dot   { stroke-dasharray: 1 2; }\n");
 
-	svg("      text      { font-family: Verdana; font-size: 10; }\n");
-	svg("      text.sec  { font-size: 8; }\n");
-	svg("//    text.psnm { }\n");
-	svg("      text.t1   { font-size: 24; }\n");
-	svg("      text.t2   { font-size: 12; }\n");
+	svg("      .run       { font-size: 8; font-style: italic; }\n");
+	svg("      text       { font-family: Verdana, Helvetica; font-size: 10; }\n");
+	svg("      text.sec   { font-size: 8; }\n");
+	svg("      text.t1    { font-size: 24; }\n");
+	svg("      text.t2    { font-size: 12; }\n");
 	
 	svg("    ]]>\n   </style>\n</defs>\n\n");
 
@@ -173,17 +173,17 @@ void svg_graph_box(int height)
 	for (d = graph_start; d <= sampletime[samples-1]; d += 0.1) {
 		/* lines for each second */
 		if (i % 50 == 0)
-			svg("  <line class=\"box2\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
+			svg("  <line class=\"sec5\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
 			    time_to_graph(d - graph_start),
 			    time_to_graph(d - graph_start),
 			    ps_to_graph(height));
 		else if (i % 10 == 0)
-			svg("  <line class=\"box1\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
+			svg("  <line class=\"sec1\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
 			    time_to_graph(d - graph_start),
 			    time_to_graph(d - graph_start),
 			    ps_to_graph(height));
 		else
-			svg("  <line class=\"box3\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
+			svg("  <line class=\"sec01\" x1=\"%.03f\" y1=\"0\" x2=\"%.03f\" y2=\"%i\" />\n",
 			    time_to_graph(d - graph_start),
 			    time_to_graph(d - graph_start),
 			    ps_to_graph(height));
@@ -596,14 +596,15 @@ void svg_ps_bars(void)
 		}
 
 		/* text label of process name */
-		svg("  <text class=\"psnm\" x=\"%.03f\" y=\"%i\">%s [%i]</text>\n",
+		svg("  <text x=\"%.03f\" y=\"%i\">%s [%i] <tspan class=\"run\">%.03fs</tspan></text>\n",
 		    /* need about 1 1/4 seconds width to draw label inside the ps box */
 		    (sampletime[ps[i]->last] - sampletime[ps[i]->first] < 1.25) ?
 		 	time_to_graph(sampletime[ps[i]->last] - graph_start) + 5:
 		 	time_to_graph(sampletime[ps[i]->first] - graph_start) + 5,
 		    ps_to_graph(j) + 14,
 		    ps[i]->name,
-		    ps[i]->pid);
+		    ps[i]->pid,
+		    (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime) / 1000000000.0);
 
 		/* paint lines to the parent process */
 		if (ps[ps[i]->ppid]) {
