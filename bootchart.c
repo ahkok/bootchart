@@ -45,9 +45,10 @@ int overrun = 0;
 int exiting = 0;
 
 
-void signal_handler(int signum)
+void signal_handler(int sig)
 {
-	signum++;
+	if (sig++)
+		sig--;
 	exiting = 1;
 }
 
