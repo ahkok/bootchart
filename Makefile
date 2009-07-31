@@ -3,11 +3,11 @@ VERSION = 0.1
 
 CC := gcc
 
-all: bootchart
+all: bootchartd
 
-install: bootchart
+install: bootchartd
 	mkdir -p $(DESTDIR)/sbin
-	install bootchart $(DESTDIR)/sbin/
+	install bootchartd $(DESTDIR)/sbin/
 
 OBJS := log.o svg.o bootchart.o
 
@@ -20,12 +20,12 @@ LDADD  +=
 	@echo "  CC  $<"
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
-bootchart: $(OBJS) Makefile
+bootchartd: $(OBJS) Makefile
 	@echo "  LD  $@"
 	@$(CC) -o $@ $(OBJS) $(LDADD) $(LDFLAGS)
 
 clean:
-	rm -rf *.o *~ bootchart
+	rm -rf *.o *~ bootchartd
 
 dist:
 	git tag v$(VERSION)
