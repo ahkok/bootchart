@@ -16,6 +16,7 @@
 #include <string.h>
 #include <time.h>
 #include <limits.h>
+#include <unistd.h>
 #include <sys/utsname.h>
 
 #include "bootchart.h"
@@ -34,6 +35,7 @@
 #define svg(a...) do { char str[8092]; sprintf(str, ## a); fputs(str, of); fflush(of); } while (0)
 
 int filtered;
+double idletime = -1.0;
 
 
 void svg_header(void)
@@ -61,12 +63,14 @@ void svg_header(void)
 	svg("      line.sec5  { stroke-width: 2; }\n");
 	svg("      line.sec01 { stroke: rgb(224,224,224); stroke-width: 1; }\n");
 	svg("      line.dot   { stroke-dasharray: 1 2; }\n");
+	svg("      line.idle  { stroke: rgb(64,64,64); stroke-dasharray: 10 6; stroke-opacity: 0.7; }\n");
 
 	svg("      .run       { font-size: 8; font-style: italic; }\n");
 	svg("      text       { font-family: Verdana, Helvetica; font-size: 10; }\n");
 	svg("      text.sec   { font-size: 8; }\n");
 	svg("      text.t1    { font-size: 24; }\n");
 	svg("      text.t2    { font-size: 12; }\n");
+	svg("      text.idle  { font-size: 18; }\n");
 	
 	svg("    ]]>\n   </style>\n</defs>\n\n");
 
@@ -154,7 +158,13 @@ void svg_title(void)
 	    cmdline);
 	svg("<text class=\"t2\" x=\"20\" y=\"110\">Build: %s</text>\n",
 	    build);
-	svg("<text class=\"sec\" x=\"20\" y=\"125\">Graph data: %i samples/sec, recorded %i total, dropped %i samples, filtered %i processes</text>\n",
+	svg("<text class=\"t2\" x=\"20\" y=\"125\">Idle time: ");
+	if (idletime >= 0.0)
+		svg("%.03fs", idletime);
+	else
+		svg("Not detected");
+	svg("</text>\n");
+	svg("<text class=\"sec\" x=\"20\" y=\"140\">Graph data: %i samples/sec, recorded %i total, dropped %i samples, filtered %i processes</text>\n",
 	    hz, len, overrun, filtered);
 }
 
@@ -506,6 +516,8 @@ void svg_ps_bars(void)
 	int i = 0;
 	int j = 0;
 	int pc = 0;
+	int wt;
+	int pid;
 
 	svg("<!-- Process graph -->\n");
 
@@ -595,12 +607,32 @@ void svg_ps_bars(void)
 			    ps_to_graph(prt));
 		}
 
+		/* determine where to display the process name */
+		if (sampletime[ps[i]->last] - sampletime[ps[i]->first] < 1.5) {
+			wt = ps[i]->last;
+		} else if (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime < (interval / 100.0)) {
+			wt = ps[i]->first;
+		} else {
+			/* walk the process left-to-right in time and determine when
+			 * it's done more than 99%, 95% of it's cpu load, and print the label
+			 * -after- that time */
+			for (wt = ps[i]->first; wt < ps[i]->last - (1.5 * hz); wt++)
+				if (((ps[i]->sample[wt].runtime - ps[i]->sample[ps[i]->first].runtime) /
+				     (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime))
+				    >= 0.99)
+					goto labelpos;
+			for (wt = ps[i]->first; wt < ps[i]->last - (1.5 * hz); wt++)
+				if (((ps[i]->sample[wt].runtime - ps[i]->sample[ps[i]->first].runtime) /
+				     (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime))
+				    >= 0.95)
+					goto labelpos;
+			/* auto-frob at end */
+		}
+
+labelpos:
 		/* text label of process name */
 		svg("  <text x=\"%.03f\" y=\"%i\">%s [%i] <tspan class=\"run\">%.03fs</tspan></text>\n",
-		    /* need about 1 1/4 seconds width to draw label inside the ps box */
-		    (sampletime[ps[i]->last] - sampletime[ps[i]->first] < 1.25) ?
-		 	time_to_graph(sampletime[ps[i]->last] - graph_start) + 5:
-		 	time_to_graph(sampletime[ps[i]->first] - graph_start) + 5,
+		    time_to_graph(sampletime[wt] - graph_start) + 5,
 		    ps_to_graph(j) + 14,
 		    ps[i]->name,
 		    ps[i]->pid,
@@ -627,6 +659,43 @@ void svg_ps_bars(void)
 		j++; /* count boxes */
 
 		svg("\n");
+	}
+
+	/* last pass - determine when idle */
+	pid = getpid();
+	for (i = 0; i < samples - (hz / 2); i++) {
+		double crt;
+		double brt;
+		int c;
+
+		/* subtract bootchart cpu utilization from total */
+		crt = 0.0;
+		for (c = 0; c < cpus; c++)
+			crt += cpustat[c].sample[i + (hz / 2)].runtime - cpustat[c].sample[i].runtime;
+		brt = ps[pid]->sample[i + (hz / 2)].runtime - ps[pid]->sample[i].runtime;
+
+		/*
+		 * our definition of "idle":
+		 *
+		 * if for (hz / 2) we've used less CPU than (interval / 2) ...
+		 * defaults to 4.0%, which experimentally, is where moblin is idling
+		 * on atom
+		 */
+		if ((crt - brt) < (interval / 2)) {
+			idletime = sampletime[i] - graph_start;
+			svg("\n<!-- idle detected at %.03f seconds -->\n",
+			    idletime);
+			svg("<line class=\"idle\" x1=\"%.03f\" y1=\"%i\" x2=\"%.03f\" y2=\"%i\" />\n",
+			    time_to_graph(idletime),
+			    -20,
+			    time_to_graph(idletime),
+			    ps_to_graph(pc) + 20);
+			svg("<text class=\"idle\" x=\"%.03f\" y=\"%i\">%.01fs</text>\n",
+			    time_to_graph(idletime) + 5,
+			    ps_to_graph(pc) + 20,
+			    idletime);
+			break;
+		}
 	}
 }
 

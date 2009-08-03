@@ -11,7 +11,7 @@
  * of the License.
  */
 
-#include <sys/time.h>
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,11 +22,11 @@
 
 double gettime_ns(void)
 {
-	struct timeval now;
+	struct timespec now;
 
-	gettimeofday(&now, NULL);
+	clock_gettime(CLOCK_MONOTONIC, &now);
 
-	return (now.tv_sec + (now.tv_usec / 1000000.0));
+	return (now.tv_sec + (now.tv_nsec / 1000000000.0));
 }
 
 
