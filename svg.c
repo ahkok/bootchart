@@ -544,7 +544,8 @@ void svg_ps_bars(void)
 			continue;
 
 		/* leave some trace of what we actually filtered etc. */
-		svg("<!-- %s [%i] ppid=%i -->\n", ps[i]->name, i, ps[i]->ppid);
+		svg("<!-- %s [%i] ppid=%i runtime=%.03fs -->\n", ps[i]->name, i, ps[i]->ppid,
+		    (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime) / 1000000000.0);
 
 		/* filter */
 		if (ps_filter(i)) {
