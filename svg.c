@@ -511,18 +511,10 @@ int ps_filter(int pid)
 	if (pid == 2)
 		return 0;
 
-	/* filter threads that don't do anything and are children of init or kthreadd,
-	 * most likely kernel threads that idle along */
-	if (ps[pid]->ppid <= 2) { /* 2 == kthreadd */
-		double total_runtime = ps[pid]->sample[ps[pid]->last].runtime -
-				       ps[pid]->sample[ps[pid]->first].runtime;
-		/* less than 1/1000th sample of work total */
-		if (total_runtime < (interval / 1000.0))
-			return -1;
-		/* drop stuff that doesn't use any real CPU time */
-		if (((ps[pid]->sample[ps[pid]->last].runtime - ps[pid]->sample[ps[pid]->first].runtime) / 1000000000.0) < 0.001)
-			return -1;
-	}
+	/* drop stuff that doesn't use any real CPU time */
+	if (ps[pid]->total < 0.001)
+		return -1;
+
 
 	return 0;
 }
@@ -560,9 +552,11 @@ void svg_ps_bars(void)
 		if (!ps[i])
 			continue;
 
+		ps[i]->total = (ps[i]->sample[ps[i]->last].runtime -
+				ps[i]->sample[ps[i]->first].runtime) / 1000000000.0;
 		/* leave some trace of what we actually filtered etc. */
-		svg("<!-- %s [%i] ppid=%i runtime=%.03fs -->\n", ps[i]->name, i, ps[i]->ppid,
-		    (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime) / 1000000000.0);
+		svg("<!-- %s [%i] ppid=%i runtime=%.03fs -->\n", ps[i]->name, i,
+		    ps[i]->ppid, ps[i]->total);
 
 		/* it would be nice if we could use exec_start from /proc/pid/sched,
 		 * but it's unreliable and gives bogus numbers */

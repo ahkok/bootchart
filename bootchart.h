@@ -60,6 +60,9 @@ struct ps_struct {
 	/* records actual start time, may be way before bootchart runs */
 	double starttime;
 
+	/* record human readable total cpu time */
+	double total;
+
 	/* for drawing connection lines later */
 	double pos_x;
 	double pos_y;
