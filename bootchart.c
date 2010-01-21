@@ -38,8 +38,8 @@ int samples;
 int cpus;
 double interval;
 FILE *of;
-int len = 750; /* we record len+1 (1 start sample) */
-int hz = 50;   /* 15 seconds log time */
+int len = 500; /* we record len+1 (1 start sample) */
+int hz = 25;   /* 20 seconds log time */
 int overrun = 0;
 
 int exiting = 0;
@@ -60,6 +60,8 @@ int main(int argc, char *argv[])
 	char output_file[PATH_MAX];
 	char datestr[200];
 	time_t t;
+
+	memset(&t, 0, sizeof(time_t));
 
 	while (1) {
 		static struct option opts[] = {

@@ -32,7 +32,9 @@
 #define max(x, y) (((x) > (y)) ? (x) : (y))
 #define min(x, y) (((x) < (y)) ? (x) : (y))
 
-#define svg(a...) do { char str[8092]; sprintf(str, ## a); fputs(str, of); fflush(of); } while (0)
+char str[8092];
+
+#define svg(a...) do { sprintf(str, ## a); fputs(str, of); fflush(of); } while (0)
 
 int filtered;
 double idletime = -1.0;
@@ -171,7 +173,7 @@ void svg_title(void)
 
 void svg_graph_box(int height)
 {
-	double d;
+	double d = 0.0;
 	int i = 0;
 
 	/* outside box, fill */
@@ -244,11 +246,16 @@ void svg_io_bi_bar(void)
 		start = max(i - ((range / 2) - 1), 0);
 		stop = min(i + (range / 2), samples - 1);
 
-		tot = (double)(blockstat[stop].bi - blockstat[start].bi) / (stop - start);
+		tot = (double)(blockstat[stop].bi - blockstat[start].bi)
+		      / (stop - start);
 		if (tot > max) {
 			max = tot;
 			max_here = i;
 		}
+		tot = (double)(blockstat[stop].bo - blockstat[start].bo)
+		      / (stop - start);
+		if (tot > max)
+			max = tot;
 	}
 
 	/* plot bi */
@@ -261,7 +268,8 @@ void svg_io_bi_bar(void)
 		start = max(i - ((range / 2) - 1), 0);
 		stop = min(i + (range / 2), samples);
 
-		tot = (double)(blockstat[stop].bi - blockstat[start].bi) / (stop - start);
+		tot = (double)(blockstat[stop].bi - blockstat[start].bi)
+		      / (stop - start);
 		pbi = tot / max;
 
 		if (pbi > 0.001)
@@ -315,7 +323,12 @@ void svg_io_bo_bar(void)
 		start = max(i - ((range / 2) - 1), 0);
 		stop = min(i + (range / 2), samples - 1);
 
-		tot = (double)(blockstat[stop].bo - blockstat[start].bo) / (stop - start);
+		tot = (double)(blockstat[stop].bi - blockstat[start].bi)
+		      / (stop - start);
+		if (tot > max)
+			max = tot;
+		tot = (double)(blockstat[stop].bo - blockstat[start].bo)
+		      / (stop - start);
 		if (tot > max) {
 			max = tot;
 			max_here = i;
@@ -332,7 +345,8 @@ void svg_io_bo_bar(void)
 		start = max(i - ((range / 2) - 1), 0);
 		stop = min(i + (range / 2), samples);
 
-		tot = (double)(blockstat[stop].bo - blockstat[start].bo) / (stop - start);
+		tot = (double)(blockstat[stop].bo - blockstat[start].bo)
+		      / (stop - start);
 		pbo = tot / max;
 
 		if (pbo > 0.001)
@@ -505,6 +519,9 @@ int ps_filter(int pid)
 		/* less than 1/1000th sample of work total */
 		if (total_runtime < (interval / 1000.0))
 			return -1;
+		/* drop stuff that doesn't use any real CPU time */
+		if (((ps[pid]->sample[ps[pid]->last].runtime - ps[pid]->sample[ps[pid]->first].runtime) / 1000000000.0) < 0.001)
+			return -1;
 	}
 
 	return 0;
@@ -547,6 +564,14 @@ void svg_ps_bars(void)
 		svg("<!-- %s [%i] ppid=%i runtime=%.03fs -->\n", ps[i]->name, i, ps[i]->ppid,
 		    (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime) / 1000000000.0);
 
+		/* it would be nice if we could use exec_start from /proc/pid/sched,
+		 * but it's unreliable and gives bogus numbers */
+		starttime = sampletime[ps[i]->first];
+
+		/* remember where _to_ our children need to draw a line */
+		ps[i]->pos_x = time_to_graph(starttime - graph_start);
+		ps[i]->pos_y = ps_to_graph(j+1); /* bottom left corner */
+
 		/* filter */
 		if (ps_filter(i)) {
 			/* if this is the last child, we might still need to draw a connecting line */
@@ -559,19 +584,11 @@ void svg_ps_bars(void)
 			continue;
 		}
 
-		/* it would be nice if we could use exec_start from /proc/pid/sched,
-		 * but it's unreliable and gives bogus numbers */
-		starttime = sampletime[ps[i]->first];
-
 		svg("  <rect class=\"ps\" x=\"%.03f\" y=\"%i\" width=\"%.03f\" height=\"%i\" />\n",
 		    time_to_graph(starttime - graph_start),
 		    ps_to_graph(j),
 		    time_to_graph(sampletime[ps[i]->last] - starttime),
 		    ps_to_graph(1));
-
-		/* remember where _to_ our children need to draw a line */
-		ps[i]->pos_x = time_to_graph(starttime - graph_start);
-		ps[i]->pos_y = ps_to_graph(j+1); /* bottom left corner */
 
 		/* paint cpu load over these */
 		for (t = ps[i]->first + 1; t < ps[i]->last; t++) {
@@ -703,6 +720,8 @@ labelpos:
 
 void svg_do(void)
 {
+	memset(&str, 0, sizeof(str));
+
 	svg_header();
 
 	svg("<g transform=\"translate(10,200)\">\n");

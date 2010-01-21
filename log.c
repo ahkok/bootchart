@@ -160,6 +160,7 @@ void log_sample(int sample)
 				perror("malloc ps[pid]");
 				exit (EXIT_FAILURE);
 			}
+			memset(ps[pid], 0, sizeof(struct ps_struct));
 
 			/* mark our first sample */
 			ps[pid]->first = sample;
