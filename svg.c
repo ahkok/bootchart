@@ -136,15 +136,11 @@ void svg_title(void)
 		fclose(f);
 	}
 
-	/* Build */
-	f = fopen("/etc/issue", "r");
+	/* Build - 1st line from /etc/system-release */
+	f = fopen("/etc/system-release", "r");
 	if (f) {
-		while (fgets(buf, 255, f)) {
-			if (strstr(buf, "Build:")) {
-				strncpy(build, &buf[6], 255);
-				break;
-			}
-		}
+		if (fgets(buf, 255, f))
+			strncpy(build, buf, 255);
 		fclose(f);
 	}
 
