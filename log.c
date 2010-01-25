@@ -248,6 +248,10 @@ void log_sample(int sample)
 		ps[pid]->sample[sample].runtime = atoll(rt);
 		ps[pid]->sample[sample].waittime = atoll(wt);
 
+		ps[pid]->total = (ps[pid]->sample[ps[pid]->last].runtime
+				 - ps[pid]->sample[ps[pid]->first].runtime)
+				 / 1000000000.0;
+
 		/* catch process rename, try to randomize time */
 		if (((samples - ps[pid]->first) + pid) % (hz / 4) == 0) {
 			char line[80];

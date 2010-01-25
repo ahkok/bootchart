@@ -166,8 +166,8 @@ void svg_title(void)
 	else
 		svg("Not detected");
 	svg("</text>\n");
-	svg("<text class=\"sec\" x=\"20\" y=\"140\">Graph data: %i samples/sec, recorded %i total, dropped %i samples, filtered %i processes</text>\n",
-	    hz, len, overrun, filtered);
+	svg("<text class=\"sec\" x=\"20\" y=\"140\">Graph data: %i samples/sec, recorded %i total, dropped %i samples, %i processes, %i filtered</text>\n",
+	    hz, len, overrun, pscount, filtered);
 }
 
 
@@ -499,7 +499,6 @@ int get_next_ps(int start)
 
 int ps_filter(int pid)
 {
-
 	if (!filter)
 		return 0;
 
@@ -512,9 +511,8 @@ int ps_filter(int pid)
 		return 0;
 
 	/* drop stuff that doesn't use any real CPU time */
-	if (ps[pid]->total < 0.001)
+	if (ps[pid]->total <= 0.001)
 		return -1;
-
 
 	return 0;
 }
@@ -552,8 +550,6 @@ void svg_ps_bars(void)
 		if (!ps[i])
 			continue;
 
-		ps[i]->total = (ps[i]->sample[ps[i]->last].runtime -
-				ps[i]->sample[ps[i]->first].runtime) / 1000000000.0;
 		/* leave some trace of what we actually filtered etc. */
 		svg("<!-- %s [%i] ppid=%i runtime=%.03fs -->\n", ps[i]->name, i,
 		    ps[i]->ppid, ps[i]->total);
@@ -568,6 +564,7 @@ void svg_ps_bars(void)
 
 		/* filter */
 		if (ps_filter(i)) {
+// FIXME
 			/* if this is the last child, we might still need to draw a connecting line */
 			if ((!ps[i]->next) && (ps[ps[i]->ppid]))
 				svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%i\" x2=\"%.03f\" y2=\"%.03f\" />\n",
