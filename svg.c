@@ -36,8 +36,9 @@ char str[8092];
 
 #define svg(a...) do { sprintf(str, ## a); fputs(str, of); fflush(of); } while (0)
 
-int filtered;
 double idletime = -1.0;
+int pfiltered = 0;
+int pcount = 0;
 
 
 void svg_header(void)
@@ -163,7 +164,7 @@ void svg_title(void)
 		svg("Not detected");
 	svg("</text>\n");
 	svg("<text class=\"sec\" x=\"20\" y=\"140\">Graph data: %i samples/sec, recorded %i total, dropped %i samples, %i processes, %i filtered</text>\n",
-	    hz, len, overrun, pscount, filtered);
+	    hz, len, overrun, pscount, pfiltered);
 }
 
 
@@ -518,7 +519,6 @@ void svg_ps_bars(void)
 {
 	int i = 0;
 	int j = 0;
-	int pc = 0;
 	int wt;
 	int pid;
 
@@ -526,16 +526,8 @@ void svg_ps_bars(void)
 
 	svg("<text class=\"t2\" x=\"5\" y=\"-15\">Processes</text>\n");
 
-	/* pass 1 - pre-count processes to draw */
-	while ((i = get_next_ps(i))) {
-		if (!ps_filter(i))
-			pc++;
-		else
-			filtered++;
-	}
-
 	/* surrounding box */
-	svg_graph_box(pc);
+	svg_graph_box(pcount);
 
 	/* pass 2 - ps boxes */
 	i = 0;
@@ -668,7 +660,10 @@ labelpos:
 
 	/* last pass - determine when idle */
 	pid = getpid();
-	for (i = 0; i < samples - (hz / 2); i++) {
+	/* make sure we start counting from the point where we actually have
+	 * data: assume that bootchart's first sample is when data started
+	 */
+	for (i = ps[pid]->first; i < samples - (hz / 2); i++) {
 		double crt;
 		double brt;
 		int c;
@@ -683,8 +678,7 @@ labelpos:
 		 * our definition of "idle":
 		 *
 		 * if for (hz / 2) we've used less CPU than (interval / 2) ...
-		 * defaults to 4.0%, which experimentally, is where moblin is idling
-		 * on atom
+		 * defaults to 4.0%, which experimentally, is where atom idles
 		 */
 		if ((crt - brt) < (interval / 2)) {
 			idletime = sampletime[i] - graph_start;
@@ -694,10 +688,10 @@ labelpos:
 			    time_to_graph(idletime),
 			    -20,
 			    time_to_graph(idletime),
-			    ps_to_graph(pc) + 20);
+			    ps_to_graph(pcount) + 20);
 			svg("<text class=\"idle\" x=\"%.03f\" y=\"%i\">%.01fs</text>\n",
 			    time_to_graph(idletime) + 5,
-			    ps_to_graph(pc) + 20,
+			    ps_to_graph(pcount) + 20,
 			    idletime);
 			break;
 		}
@@ -707,7 +701,17 @@ labelpos:
 
 void svg_do(void)
 {
+	int i = 0;
+
 	memset(&str, 0, sizeof(str));
+
+	/* pass 1 - pre-count processes to draw */
+	while ((i = get_next_ps(i))) {
+		if (!ps_filter(i))
+			pcount++;
+		else
+			pfiltered++;
+	}
 
 	svg_header();
 
