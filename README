@@ -59,6 +59,14 @@ to generate the SVG output file.
 
 --
 
+Many thanks to those who contributed ideas and code:
+ - Ziga Mahkovec - Original bootchart author
+ - Anders Norgaard - PyBootchartgui
+ - Michael Meeks - bootchart2
+ - Scott James Remnant - Ubuntu C-based logger
+
+--
+
 For bugs, please contac the author or current maintainer:
 Auke Kok <auke-jan.h.kok@intel.com>
 
