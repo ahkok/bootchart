@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 
 	memset(&t, 0, sizeof(time_t));
 
-	f = fopen("/etc/bootchard.conf", "r");
+	f = fopen("/etc/bootchartd.conf", "r");
 	if (f) {
 		char buf[256];
 		char *key;
