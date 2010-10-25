@@ -1,5 +1,5 @@
 
-VERSION = 1.4
+VERSION = 1.5
 
 CC := gcc
 
@@ -7,6 +7,7 @@ all: bootchartd
 
 install: bootchartd
 	mkdir -p $(DESTDIR)/sbin
+	mkdir -p $(DESTDIR)/etc
 	install -m0755 bootchartd $(DESTDIR)/sbin/
 	install -m0644 bootchartd.conf.example $(DESTDIR)/etc/
 
