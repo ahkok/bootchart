@@ -1,0 +1,10 @@
+#
+# bootchartd configuration - /etc/bootchartd.conf
+#
+# defaults are:
+#
+#len=1200
+#freq=20
+#relative=0
+#filter=1
+#output=<dynamic name, in /var/log/bootchart-$TIMESTAMP.svg>
