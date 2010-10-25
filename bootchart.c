@@ -38,8 +38,8 @@ int samples;
 int cpus;
 double interval;
 FILE *of;
-int len = 500; /* we record len+1 (1 start sample) */
-int hz = 25;   /* 20 seconds log time */
+int len = 1200; /* we record len+1 (1 start sample) */
+int hz = 20;   /* 20 seconds log time */
 int overrun = 0;
 
 int exiting = 0;
@@ -60,8 +60,47 @@ int main(int argc, char *argv[])
 	char output_file[PATH_MAX];
 	char datestr[200];
 	time_t t;
+	FILE *f;
 
 	memset(&t, 0, sizeof(time_t));
+
+	f = fopen("/etc/bootchard.conf", "r");
+	if (f) {
+		char buf[256];
+		char *key;
+		char *val;
+
+		while (fgets(buf, 80, f) != NULL) {
+			char *c;
+
+			c = strchr(buf, '\n');
+			if (c) *c = 0; /* remove trailing \n */
+
+			if (buf[0] == '#')
+				continue; /* comment line */
+
+			key = strtok(buf, "=");
+			if (!key)
+				continue;
+			val = strtok(NULL, "=");
+			if (!val)
+				continue;
+
+			// todo: filter leading/trailing whitespace
+
+			if (!strcmp(key, "samples"))
+				len = atoi(val);
+			if (!strcmp(key, "freq"))
+				hz = atoi(val);
+			if (!strcmp(key, "rel"))
+				relative = atoi(val);;
+			if (!strcmp(key, "filter"))
+				filter = atoi(val);;
+			if (!strcmp(key, "output"))
+				strncpy(output_path, val, PATH_MAX - 1);
+		}
+		fclose(f);
+	}
 
 	while (1) {
 		static struct option opts[] = {
@@ -91,10 +130,6 @@ int main(int argc, char *argv[])
 			break;
 		case 'n':
 			len = atoi(optarg);
-			if (len > MAXSAMPLES) {
-				fprintf(stderr, "Error: samples exceeds maximum\n");
-				exit(EXIT_FAILURE);
-			}
 			break;
 		case 'o':
 			strncpy(output_path, optarg, PATH_MAX - 1);
@@ -115,6 +150,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	if (len > MAXSAMPLES) {
+		fprintf(stderr, "Error: samples exceeds maximum\n");
+		exit(EXIT_FAILURE);
+	}
 
 	/*
 	 * If the kernel executed us through init=/sbin/bootchartd, then

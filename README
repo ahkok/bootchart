@@ -59,6 +59,11 @@ to generate the SVG output file.
 
 --
 
+Configuration: please see bootchartd --help, as well as /etc/bootchartd.conf
+and/or /etc/bootchartd.conf.example for a list of configurable options.
+
+--
+
 Many thanks to those who contributed ideas and code:
  - Ziga Mahkovec - Original bootchart author
  - Anders Norgaard - PyBootchartgui
@@ -67,6 +72,6 @@ Many thanks to those who contributed ideas and code:
 
 --
 
-For bugs, please contac the author or current maintainer:
+For bugs, please contact the author or current maintainer:
 Auke Kok <auke-jan.h.kok@intel.com>
 

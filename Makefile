@@ -7,7 +7,8 @@ all: bootchartd
 
 install: bootchartd
 	mkdir -p $(DESTDIR)/sbin
-	install bootchartd $(DESTDIR)/sbin/
+	install -m0755 bootchartd $(DESTDIR)/sbin/
+	install -m0644 bootchartd.conf.example $(DESTDIR)/etc/
 
 OBJS := log.o svg.o bootchart.o
 
