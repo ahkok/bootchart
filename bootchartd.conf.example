@@ -3,8 +3,8 @@
 #
 # defaults are:
 #
-#len=1200
-#freq=20
+#len=500
+#freq=25
 #relative=0
 #filter=1
 #output=<dynamic name, in /var/log/bootchart-$TIMESTAMP.svg>
