@@ -38,8 +38,8 @@ int samples;
 int cpus;
 double interval;
 FILE *of;
-int len = 1200; /* we record len+1 (1 start sample) */
-int hz = 20;   /* 20 seconds log time */
+int len = 500; /* we record len+1 (1 start sample) */
+int hz = 25;   /* 20 seconds log time */
 int overrun = 0;
 
 int exiting = 0;
