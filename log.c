@@ -62,7 +62,8 @@ void log_sample(int sample)
 	static FILE *vmstat;
 	static FILE *schedstat;
 	static DIR *proc;
-	FILE *f;
+	FILE *stat;
+	char line[4096];
 	char key[256];
 	char val[256];
 	char rt[256];
@@ -77,6 +78,11 @@ void log_sample(int sample)
 		if (!vmstat) {
 			perror("fopen(\"/proc/vmstat\")");
 			exit (EXIT_FAILURE);
+		}
+	} else {
+		if (fseek(vmstat, 0, SEEK_SET)) {
+			fclose(vmstat);
+			return;
 		}
 	}
 
@@ -96,14 +102,15 @@ void log_sample(int sample)
 			perror("fopen(\"/proc/schedstat\")");
 			exit (EXIT_FAILURE);
 		}
+	} else {
+		if (fseek(schedstat, 0, SEEK_SET)) {
+			fclose(schedstat);
+			return;
+		}
 	}
 
-	while (!feof(schedstat)) {
+	while (fgets(line, 4095, schedstat)) {
 		int n;
-		char line[4096];
-
-		if (!fgets(line, 4095, schedstat))
-			continue;
 
 		n = sscanf(line, "%s %*s %*s %*s %*s %*s %*s %s %s", key, rt, wt);
 
@@ -192,14 +199,14 @@ void log_sample(int sample)
 
 			/* ppid */
 			sprintf(filename, "/proc/%d/stat", pid);
-			f = fopen(filename, "r");
-			if (!f)
+			stat = fopen(filename, "r");
+			if (!stat)
 				continue;
-			if (!fscanf(f, "%*s %*s %*s %i", &p)) {
-				fclose(f);
+			if (!fscanf(stat, "%*s %*s %*s %i", &p)) {
+				fclose(stat);
 				continue;
 			}
-			fclose(f);
+			fclose(stat);
 			ps[pid]->ppid = p;
 
 			/*
