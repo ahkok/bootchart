@@ -53,6 +53,10 @@ struct ps_struct {
 	int pid;
 	int ppid;
 
+	/* cache fd's */
+	FILE *sched;
+	FILE *schedstat;
+
 	/* index to first/last seen timestamps */
 	int first;
 	int last;

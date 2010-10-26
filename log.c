@@ -141,17 +141,6 @@ void log_sample(int sample)
 		if (pid > MAXPIDS)
 			continue;
 
-		sprintf(filename, "/proc/%d/schedstat", pid);
-
-		f = fopen(filename, "r");
-		if (!f)
-			continue;
-		if (!fscanf(f, "%s %s %*s", rt, wt)) {
-			fclose(f);
-			continue;
-		}
-		fclose(f);
-
 		if (!ps[pid]) {
 			char line[80];
 			char t[32];
@@ -171,36 +160,33 @@ void log_sample(int sample)
 			ps[pid]->first = sample;
 
 			/* get name, start time */
-			sprintf(filename, "/proc/%d/sched", pid);
-			f = fopen(filename, "r");
-			if (!f)
+			if (!ps[pid]->sched) {
+				sprintf(filename, "/proc/%d/sched", pid);
+				ps[pid]->sched = fopen(filename, "r");
+				if (!ps[pid]->sched)
+					continue;
+			} else {
+				if (fseek(ps[pid]->sched, 0, SEEK_SET)) {
+					fclose(ps[pid]->sched);
+					continue;
+				}
+			}
+
+			if (!fgets(line, 79, ps[pid]->sched))
 				continue;
 
-			if (!fgets(line, 79, f)) {
-				fclose(f);
+			if (!sscanf(line, "%s %*s %*s", key))
 				continue;
-			}
-			if (!sscanf(line, "%s %*s %*s", key)) {
-				fclose(f);
-				continue;
-			}
 
 			strncpy(ps[pid]->name, key, 16);
 			/* discard line 2 */
-			if (!fgets(line, 79, f)) {
-				fclose(f);
+			if (!fgets(line, 79, ps[pid]->sched))
 				continue;
-			}
 
-			if (!fgets(line, 79, f)) {
-				fclose(f);
+			if (!fgets(line, 79, ps[pid]->sched))
 				continue;
-			}
-			if (!sscanf(line, "%*s %*s %s", t)) {
-				fclose(f);
+			if (!sscanf(line, "%*s %*s %s", t))
 				continue;
-			}
-			fclose(f);
 
 			ps[pid]->starttime = strtod(t, NULL) / 1000.0;
 
@@ -244,9 +230,23 @@ void log_sample(int sample)
 					children = children->next;
 				children->next = ps[pid];
 			}
-
-
 		}
+
+		if (!ps[pid]->schedstat) {
+			sprintf(filename, "/proc/%d/schedstat", pid);
+
+			ps[pid]->schedstat = fopen(filename, "r");
+			if (!ps[pid]->schedstat)
+				continue;
+		} else {
+			if (fseek(ps[pid]->schedstat, 0, SEEK_SET)) {
+				fclose(ps[pid]->schedstat);
+				continue;
+			}
+		}
+
+		if (!fscanf(ps[pid]->schedstat, "%s %s %*s", rt, wt))
+			continue;
 
 		ps[pid]->pid = pid;
 		ps[pid]->last = sample;
@@ -262,23 +262,26 @@ void log_sample(int sample)
 			char line[80];
 
 			/* re-fetch name */
-			sprintf(filename, "/proc/%d/sched", pid);
-			f = fopen(filename, "r");
+			/* get name, start time */
+			if (!ps[pid]->sched) {
+				sprintf(filename, "/proc/%d/sched", pid);
+				ps[pid]->sched = fopen(filename, "r");
+				if (!ps[pid]->sched)
+					continue;
+			} else {
+				if (fseek(ps[pid]->sched, 0, SEEK_SET)) {
+					fclose(ps[pid]->sched);
+					continue;
+				}
+			}
 
-			if (!fgets(line, 79, f)) {
-				fclose(f);
+			if (!fgets(line, 79, ps[pid]->sched))
 				continue;
-			}
-			if (!sscanf(line, "%s %*s %*s", key)) {
-				fclose(f);
+			if (!sscanf(line, "%s %*s %*s", key))
 				continue;
-			}
 
 			strncpy(ps[pid]->name, key, 16);
-			fclose(f);
-
 		}
-
 	}
 }
 
