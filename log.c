@@ -59,8 +59,10 @@ void log_uptime(void)
 
 void log_sample(int sample)
 {
+	static FILE *vmstat;
+	static FILE *schedstat;
+	static DIR *proc;
 	FILE *f;
-	DIR *proc;
 	char key[256];
 	char val[256];
 	char rt[256];
@@ -69,15 +71,16 @@ void log_sample(int sample)
 	int p;
 	struct dirent *ent;
 
-
-	/* block stuff */
-	f = fopen("/proc/vmstat", "r");
-	if (!f) {
-		perror("fopen(\"/proc/vmstat\")");
-		exit (EXIT_FAILURE);
+	if (!vmstat) {
+		/* block stuff */
+		vmstat = fopen("/proc/vmstat", "r");
+		if (!vmstat) {
+			perror("fopen(\"/proc/vmstat\")");
+			exit (EXIT_FAILURE);
+		}
 	}
 
-	while (fscanf(f, "%s %s", key, val) > 0) {
+	while (fscanf(vmstat, "%s %s", key, val) > 0) {
 		if (!strcmp(key, "pgpgin"))
 			blockstat[sample].bi = atoi(val);
 		if (!strcmp(key, "pgpgout")) {
@@ -86,20 +89,20 @@ void log_sample(int sample)
 		}
 	}
 
-	fclose(f);
-
-	/* overall CPU utilization */
-	f = fopen("/proc/schedstat", "r");
-	if (!f) {
-		perror("fopen(\"/proc/schedstat\")");
-		exit (EXIT_FAILURE);
+	if (!schedstat) {
+		/* overall CPU utilization */
+		schedstat = fopen("/proc/schedstat", "r");
+		if (!schedstat) {
+			perror("fopen(\"/proc/schedstat\")");
+			exit (EXIT_FAILURE);
+		}
 	}
 
-	while (!feof(f)) {
+	while (!feof(schedstat)) {
 		int n;
 		char line[4096];
 
-		if (!fgets(line, 4095, f))
+		if (!fgets(line, 4095, schedstat))
 			continue;
 
 		n = sscanf(line, "%s %*s %*s %*s %*s %*s %*s %s %s", key, rt, wt);
@@ -117,12 +120,14 @@ void log_sample(int sample)
 		}
 	}
 
-	fclose(f);
-
-	/* find all processes */
-	proc = opendir("/proc");
-	if (!proc)
-		return;
+	if (!proc) {
+		/* find all processes */
+		proc = opendir("/proc");
+		if (!proc)
+			return;
+	} else {
+		rewinddir(proc);
+	}
 
 	while ((ent = readdir(proc)) != NULL) {
 		char filename[PATH_MAX];
@@ -275,8 +280,5 @@ void log_sample(int sample)
 		}
 
 	}
-
-	// FIXME: why does this give glibc double free or crap?
-	closedir(proc);
 }
 
