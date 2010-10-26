@@ -1,5 +1,5 @@
 
-VERSION = 1.5
+VERSION = 1.6
 
 CC := gcc
 
@@ -8,8 +8,10 @@ all: bootchartd
 install: bootchartd
 	mkdir -p $(DESTDIR)/sbin
 	mkdir -p $(DESTDIR)/etc
+	mkdir -p $(DESTDIR)/usr/share/doc/bootchart/
 	install -m0755 bootchartd $(DESTDIR)/sbin/
-	install -m0644 bootchartd.conf.example $(DESTDIR)/etc/
+	install -m0644 bootchartd.conf.example $(DESTDIR)/usr/share/bootchart/
+	install -m0644 README COPYING $(DESTDIR)/usr/share/doc/bootchart/
 
 OBJS := log.o svg.o bootchart.o
 

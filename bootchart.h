@@ -16,7 +16,7 @@
 
 #define MAXCPUS         8
 #define MAXPIDS     65535
-#define MAXSAMPLES   4096
+#define MAXSAMPLES   8192
 
 
 struct block_stat_struct {

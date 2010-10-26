@@ -143,7 +143,8 @@ int main(int argc, char *argv[])
 			fprintf(stderr, " --filter,  -F            Disable filtering of processes from the graph\n");
 			fprintf(stderr, "                          that are of less importance or short-lived\n");
 			fprintf(stderr, " --help,    -h            Display this message\n");
-			exit (EXIT_FAILURE);
+			fprintf(stderr, "See the installed README and bootchartd.conf.example for more information.\n");
+			exit (EXIT_SUCCESS);
 			break;
 		default:
 			break;
