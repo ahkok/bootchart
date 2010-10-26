@@ -11,11 +11,18 @@
  * of the License.
  */
 
-#include <time.h>
-#include <stdio.h>
+#define _GNU_SOURCE 1
+#include <unistd.h>
 #include <stdlib.h>
+#include <limits.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdio.h>
 #include <string.h>
 #include <dirent.h>
+#include <fcntl.h>
+#include <time.h>
+
 
 #include "bootchart.h"
 
@@ -63,13 +70,15 @@ void log_sample(int sample)
 	static FILE *schedstat;
 	static DIR *proc;
 	FILE *stat;
-	char line[4096];
+	char buf[4095];
 	char key[256];
 	char val[256];
 	char rt[256];
 	char wt[256];
+	char *m;
 	int c;
 	int p;
+	int s;
 	struct dirent *ent;
 
 	if (!vmstat) {
@@ -109,10 +118,10 @@ void log_sample(int sample)
 		}
 	}
 
-	while (fgets(line, 4095, schedstat)) {
+	while (fgets(buf, sizeof(buf) - 1, schedstat)) {
 		int n;
 
-		n = sscanf(line, "%s %*s %*s %*s %*s %*s %*s %s %s", key, rt, wt);
+		n = sscanf(buf, "%s %*s %*s %*s %*s %*s %*s %s %s", key, rt, wt);
 
 		if (n < 3)
 			continue;
@@ -149,7 +158,6 @@ void log_sample(int sample)
 			continue;
 
 		if (!ps[pid]) {
-			char line[80];
 			char t[32];
 			struct ps_struct *parent;
 
@@ -169,30 +177,38 @@ void log_sample(int sample)
 			/* get name, start time */
 			if (!ps[pid]->sched) {
 				sprintf(filename, "/proc/%d/sched", pid);
-				ps[pid]->sched = fopen(filename, "r");
+				ps[pid]->sched = open(filename, O_RDONLY);
 				if (!ps[pid]->sched)
 					continue;
-			} else {
-				if (fseek(ps[pid]->sched, 0, SEEK_SET)) {
-					fclose(ps[pid]->sched);
-					continue;
-				}
 			}
 
-			if (!fgets(line, 79, ps[pid]->sched))
+			s = pread(ps[pid]->sched, buf, sizeof(buf) - 1, 0);
+			if (s <= 0) {
+				close(ps[pid]->sched);
 				continue;
+			}
 
-			if (!sscanf(line, "%s %*s %*s", key))
+			m = strchr(buf, '\n');
+			if (!m)
+				continue;
+			m++;
+
+			if (!sscanf(m, "%s %*s %*s", key))
 				continue;
 
 			strncpy(ps[pid]->name, key, 16);
 			/* discard line 2 */
-			if (!fgets(line, 79, ps[pid]->sched))
+			m = strchr(m, '\n');
+			if (!m)
 				continue;
+			m++;
 
-			if (!fgets(line, 79, ps[pid]->sched))
+			m = strchr(m, '\n');
+			if (!m)
 				continue;
-			if (!sscanf(line, "%*s %*s %s", t))
+			m++;
+
+			if (!sscanf(m, "%*s %*s %s", t))
 				continue;
 
 			ps[pid]->starttime = strtod(t, NULL) / 1000.0;
@@ -241,18 +257,16 @@ void log_sample(int sample)
 
 		if (!ps[pid]->schedstat) {
 			sprintf(filename, "/proc/%d/schedstat", pid);
-
-			ps[pid]->schedstat = fopen(filename, "r");
+			ps[pid]->schedstat = open(filename, O_RDONLY);
 			if (!ps[pid]->schedstat)
 				continue;
-		} else {
-			if (fseek(ps[pid]->schedstat, 0, SEEK_SET)) {
-				fclose(ps[pid]->schedstat);
-				continue;
-			}
 		}
 
-		if (!fscanf(ps[pid]->schedstat, "%s %s %*s", rt, wt))
+		if (pread(ps[pid]->schedstat, buf, sizeof(buf) - 1, 0) <= 0) {
+			close(ps[pid]->schedstat);
+			continue;
+		}
+		if (!sscanf(buf, "%s %s %*s", rt, wt))
 			continue;
 
 		ps[pid]->pid = pid;
@@ -266,25 +280,21 @@ void log_sample(int sample)
 
 		/* catch process rename, try to randomize time */
 		if (((samples - ps[pid]->first) + pid) % (hz / 4) == 0) {
-			char line[80];
 
 			/* re-fetch name */
 			/* get name, start time */
 			if (!ps[pid]->sched) {
 				sprintf(filename, "/proc/%d/sched", pid);
-				ps[pid]->sched = fopen(filename, "r");
+				ps[pid]->sched = open(filename, O_RDONLY);
 				if (!ps[pid]->sched)
 					continue;
-			} else {
-				if (fseek(ps[pid]->sched, 0, SEEK_SET)) {
-					fclose(ps[pid]->sched);
-					continue;
-				}
+			}
+			if (pread(ps[pid]->sched, buf, sizeof(buf) - 1, 0) <= 0) {
+				close(ps[pid]->sched);
+				continue;
 			}
 
-			if (!fgets(line, 79, ps[pid]->sched))
-				continue;
-			if (!sscanf(line, "%s %*s %*s", key))
+			if (!sscanf(buf, "%s %*s %*s", key))
 				continue;
 
 			strncpy(ps[pid]->name, key, 16);
