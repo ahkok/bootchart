@@ -64,10 +64,24 @@ void log_uptime(void)
 }
 
 
+static char *bufgetline(char *buf)
+{
+	char *c;
+
+	if (!buf)
+		return NULL;
+
+	c = strchr(buf, '\n');
+	if (c)
+		c++;
+	return c;
+}
+
+
 void log_sample(int sample)
 {
-	static FILE *vmstat;
-	static FILE *schedstat;
+	static int vmstat;
+	static int schedstat;
 	static DIR *proc;
 	FILE *stat;
 	char buf[4095];
@@ -79,52 +93,61 @@ void log_sample(int sample)
 	int c;
 	int p;
 	int s;
+	int n;
 	struct dirent *ent;
 
 	if (!vmstat) {
 		/* block stuff */
-		vmstat = fopen("/proc/vmstat", "r");
+		vmstat = open("/proc/vmstat", O_RDONLY);
 		if (!vmstat) {
-			perror("fopen(\"/proc/vmstat\")");
+			perror("open /proc/vmstat");
 			exit (EXIT_FAILURE);
-		}
-	} else {
-		if (fseek(vmstat, 0, SEEK_SET)) {
-			fclose(vmstat);
-			return;
 		}
 	}
 
-	while (fscanf(vmstat, "%s %s", key, val) > 0) {
+	n = pread(vmstat, buf, sizeof(buf) - 1, 0);
+	if (n <= 0) {
+		close(vmstat);
+		return;
+	}
+	buf[n] = '\0';
+
+	m = buf;
+	while (m) {
+		if (sscanf(m, "%s %s", key, val) < 2)
+			goto vmstat_next;
 		if (!strcmp(key, "pgpgin"))
 			blockstat[sample].bi = atoi(val);
 		if (!strcmp(key, "pgpgout")) {
 			blockstat[sample].bo = atoi(val);
 			break;
 		}
+vmstat_next:
+		m = bufgetline(m);
+		if (!m)
+			break;
 	}
 
 	if (!schedstat) {
 		/* overall CPU utilization */
-		schedstat = fopen("/proc/schedstat", "r");
+		schedstat = open("/proc/schedstat", O_RDONLY);
 		if (!schedstat) {
-			perror("fopen(\"/proc/schedstat\")");
+			perror("open /proc/schedstat");
 			exit (EXIT_FAILURE);
-		}
-	} else {
-		if (fseek(schedstat, 0, SEEK_SET)) {
-			fclose(schedstat);
-			return;
 		}
 	}
 
-	while (fgets(buf, sizeof(buf) - 1, schedstat)) {
-		int n;
+	n = pread(schedstat, buf, sizeof(buf) - 1, 0);
+	if (n <= 0) {
+		close(schedstat);
+		return;
+	}
+	buf[n] = '\0';
 
-		n = sscanf(buf, "%s %*s %*s %*s %*s %*s %*s %s %s", key, rt, wt);
-
-		if (n < 3)
-			continue;
+	m = buf;
+	while (m) {
+		if (sscanf(m, "%s %*s %*s %*s %*s %*s %*s %s %s", key, rt, wt) < 3)
+			goto schedstat_next;
 
 		if (strstr(key, "cpu")) {
 			c = key[3] - '0';
@@ -134,8 +157,13 @@ void log_sample(int sample)
 			if (c == cpus)
 				cpus = c + 1;
 		}
+schedstat_next:
+		m = bufgetline(m);
+		if (!m)
+			break;
 	}
 
+	/* all the per-process stuff goes here */
 	if (!proc) {
 		/* find all processes */
 		proc = opendir("/proc");
@@ -188,25 +216,18 @@ void log_sample(int sample)
 				continue;
 			}
 
-			m = strchr(buf, '\n');
-			if (!m)
-				continue;
-			m++;
-
-			if (!sscanf(m, "%s %*s %*s", key))
+			if (!sscanf(buf, "%s %*s %*s", key))
 				continue;
 
 			strncpy(ps[pid]->name, key, 16);
 			/* discard line 2 */
-			m = strchr(m, '\n');
+			m = bufgetline(buf);
 			if (!m)
 				continue;
-			m++;
 
-			m = strchr(m, '\n');
+			m = bufgetline(m);
 			if (!m)
 				continue;
-			m++;
 
 			if (!sscanf(m, "%*s %*s %s", t))
 				continue;
