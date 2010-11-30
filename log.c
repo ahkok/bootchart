@@ -99,7 +99,7 @@ void log_sample(int sample)
 	if (!vmstat) {
 		/* block stuff */
 		vmstat = open("/proc/vmstat", O_RDONLY);
-		if (!vmstat) {
+		if (vmstat == -1) {
 			perror("open /proc/vmstat");
 			exit (EXIT_FAILURE);
 		}
@@ -131,7 +131,7 @@ vmstat_next:
 	if (!schedstat) {
 		/* overall CPU utilization */
 		schedstat = open("/proc/schedstat", O_RDONLY);
-		if (!schedstat) {
+		if (schedstat == -1) {
 			perror("open /proc/schedstat");
 			exit (EXIT_FAILURE);
 		}
@@ -206,7 +206,7 @@ schedstat_next:
 			if (!ps[pid]->sched) {
 				sprintf(filename, "/proc/%d/sched", pid);
 				ps[pid]->sched = open(filename, O_RDONLY);
-				if (!ps[pid]->sched)
+				if (ps[pid]->sched == -1)
 					continue;
 			}
 
@@ -279,7 +279,7 @@ schedstat_next:
 		if (!ps[pid]->schedstat) {
 			sprintf(filename, "/proc/%d/schedstat", pid);
 			ps[pid]->schedstat = open(filename, O_RDONLY);
-			if (!ps[pid]->schedstat)
+			if (ps[pid]->schedstat == -1)
 				continue;
 		}
 
@@ -307,7 +307,7 @@ schedstat_next:
 			if (!ps[pid]->sched) {
 				sprintf(filename, "/proc/%d/sched", pid);
 				ps[pid]->sched = open(filename, O_RDONLY);
-				if (!ps[pid]->sched)
+				if (ps[pid]->sched == -1)
 					continue;
 			}
 			if (pread(ps[pid]->sched, buf, sizeof(buf) - 1, 0) <= 0) {
