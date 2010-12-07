@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 
 		int index = 0, c;
 
-		c = getopt_long(argc, argv, "rf:n:o:F:h", opts, &index);
+		c = getopt_long(argc, argv, "rf:n:o:Fh", opts, &index);
 		if (c == -1)
 			break;
 		switch (c) {
