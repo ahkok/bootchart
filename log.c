@@ -274,6 +274,8 @@ schedstat_next:
 					children = children->next;
 				children->next = ps[pid];
 			}
+
+			ps[pid]->pid = pid;
 		}
 
 		if (!ps[pid]->schedstat) {
