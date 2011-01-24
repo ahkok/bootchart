@@ -683,6 +683,40 @@ void svg_ps_bars(void)
 }
 
 
+void svg_top_ten(void)
+{
+	struct ps_struct *top[10];
+	struct ps_struct emptyps;
+	int i, n, m;
+
+	memset(&emptyps, 0, sizeof(emptyps));
+	for (n=0; n < 10; n++)
+		top[n] = &emptyps;
+
+	/* walk all ps's and setup ptrs */
+	i = 0;
+	while ((i = get_next_ps(i))) {
+		for (n = 0; n < 10; n++) {
+			if (ps[i]->total <= top[n]->total)
+				continue;
+			/* cascade insert */
+			for (m = 9; m > n; m--)
+				top[m] = top[m-1];
+			top[n] = ps[i];
+			break;
+		}
+	}
+
+	svg("<text class=\"t2\" x=\"20\" y=\"0\">Top CPU consumers:</text>\n");
+	for (n = 0; n < 10; n++)
+		svg("<text class=\"t3\" x=\"20\" y=\"%d\">%.03fs - %s[%d]</text>\n",
+		    20 + (n * 13),
+		    top[n]->total,
+		    top[n]->name,
+		    top[n]->pid);
+}
+
+
 void svg_do(void)
 {
 	int i = 0;
@@ -699,28 +733,32 @@ void svg_do(void)
 
 	svg_header();
 
-	svg("<g transform=\"translate(10,200)\">\n");
+	svg("<g transform=\"translate(10,400)\">\n");
 	svg_io_bi_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,350)\">\n");
+	svg("<g transform=\"translate(10,550)\">\n");
 	svg_io_bo_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,500)\">\n");
+	svg("<g transform=\"translate(10,700)\">\n");
 	svg_cpu_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,650)\">\n");
+	svg("<g transform=\"translate(10,850)\">\n");
 	svg_wait_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,800)\">\n");
+	svg("<g transform=\"translate(10,1000)\">\n");
 	svg_ps_bars();
 	svg("</g>\n\n");
 
 	svg("<g transform=\"translate(10,  0)\">\n");
 	svg_title();
+	svg("</g>\n\n");
+
+	svg("<g transform=\"translate(10,200)\">\n");
+	svg_top_ten();
 	svg("</g>\n\n");
 
 	/* svg footer */
