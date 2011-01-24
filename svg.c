@@ -605,28 +605,12 @@ void svg_ps_bars(void)
 		}
 
 		/* determine where to display the process name */
-		if (sampletime[ps[i]->last] - sampletime[ps[i]->first] < 1.5) {
+		if (sampletime[ps[i]->last] - sampletime[ps[i]->first] < 1.5)
+			/* too small to fit label inside the box */
 			wt = ps[i]->last;
-		} else if (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime < (interval / 100.0)) {
+		else
 			wt = ps[i]->first;
-		} else {
-			/* walk the process left-to-right in time and determine when
-			 * it's done more than 99%, 95% of it's cpu load, and print the label
-			 * -after- that time */
-			for (wt = ps[i]->first; wt < ps[i]->last - (1.5 * hz); wt++)
-				if (((ps[i]->sample[wt].runtime - ps[i]->sample[ps[i]->first].runtime) /
-				     (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime))
-				    >= 0.99)
-					goto labelpos;
-			for (wt = ps[i]->first; wt < ps[i]->last - (1.5 * hz); wt++)
-				if (((ps[i]->sample[wt].runtime - ps[i]->sample[ps[i]->first].runtime) /
-				     (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime))
-				    >= 0.95)
-					goto labelpos;
-			/* auto-frob at end */
-		}
 
-labelpos:
 		/* text label of process name */
 		svg("  <text x=\"%.03f\" y=\"%i\">%s [%i] <tspan class=\"run\">%.03fs</tspan></text>\n",
 		    time_to_graph(sampletime[wt] - graph_start) + 5,
