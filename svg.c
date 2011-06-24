@@ -157,7 +157,9 @@ void svg_title(void)
 	    cmdline);
 	svg("<text class=\"t2\" x=\"20\" y=\"110\">Build: %s</text>\n",
 	    build);
+	svg("<text class=\"t2\" x=\"20\" y=\"125\">Log start time: %.03fs</text>\n", graph_start);
 	svg("<text class=\"t2\" x=\"20\" y=\"125\">Idle time: ");
+
 	if (idletime >= 0.0)
 		svg("%.03fs", idletime);
 	else
