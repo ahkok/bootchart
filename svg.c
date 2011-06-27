@@ -158,14 +158,14 @@ void svg_title(void)
 	svg("<text class=\"t2\" x=\"20\" y=\"110\">Build: %s</text>\n",
 	    build);
 	svg("<text class=\"t2\" x=\"20\" y=\"125\">Log start time: %.03fs</text>\n", graph_start);
-	svg("<text class=\"t2\" x=\"20\" y=\"125\">Idle time: ");
+	svg("<text class=\"t2\" x=\"20\" y=\"140\">Idle time: ");
 
 	if (idletime >= 0.0)
 		svg("%.03fs", idletime);
 	else
 		svg("Not detected");
 	svg("</text>\n");
-	svg("<text class=\"sec\" x=\"20\" y=\"140\">Graph data: %i samples/sec, recorded %i total, dropped %i samples, %i processes, %i filtered</text>\n",
+	svg("<text class=\"sec\" x=\"20\" y=\"155\">Graph data: %i samples/sec, recorded %i total, dropped %i samples, %i processes, %i filtered</text>\n",
 	    hz, len, overrun, pscount, pfiltered);
 }
 
