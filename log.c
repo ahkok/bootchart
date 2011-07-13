@@ -150,7 +150,10 @@ vmstat_next:
 			goto schedstat_next;
 
 		if (strstr(key, "cpu")) {
-			c = key[3] - '0';
+			c = atoi((const char*)(key+3));
+			if (c > MAXCPUS)
+				/* Oops, we only have room for MAXCPUS data */
+				break;
 			cpustat[c].sample[sample].runtime = atoll(rt);
 			cpustat[c].sample[sample].waittime = atoll(wt);
 
