@@ -41,6 +41,7 @@ struct ps_sched_struct {
 	/* /proc/<n>/schedstat fields 1 & 2 */
 	double runtime;
 	double waittime;
+	int pss;
 };
 
 /* process info */
@@ -56,6 +57,7 @@ struct ps_struct {
 	/* cache fd's */
 	int sched;
 	int schedstat;
+	FILE *smaps;
 
 	/* index to first/last seen timestamps */
 	int first;

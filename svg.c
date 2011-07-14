@@ -211,6 +211,31 @@ void svg_graph_box(int height)
 }
 
 
+void svg_pss_graph(void)
+{
+	int i;
+	int p;
+
+	svg("<!-- Pss memory size graph -->\n");
+
+	svg("<text class=\"t2\" x=\"5\" y=\"-15\">Memory allocation - Pss</text>\n");
+
+	svg_graph_box(100);
+
+	/* loop over time on X axis */
+	for (i = 0; i < samples ; i++) {
+		/* Y axis - stack all processes on top of eachother */
+		for (p = 0; p < MAXPIDS ; p++) {
+			if (!ps[p])
+				continue;
+			if (ps[p]->sample[i].pss == 0)
+				continue;
+
+			
+		}
+	}
+}
+
 void svg_io_bi_bar(void)
 {
 	double max = 0.0;

@@ -281,6 +281,10 @@ schedstat_next:
 			ps[pid]->pid = pid;
 		}
 
+		/* below here is all continuous logging parts - we get here on every
+		 * iteration */
+
+		/* rt, wt */
 		if (!ps[pid]->schedstat) {
 			sprintf(filename, "/proc/%d/schedstat", pid);
 			ps[pid]->schedstat = open(filename, O_RDONLY);
@@ -289,7 +293,12 @@ schedstat_next:
 		}
 
 		if (pread(ps[pid]->schedstat, buf, sizeof(buf) - 1, 0) <= 0) {
+			/* clean up our file descriptors - assume that the process exited */
 			close(ps[pid]->schedstat);
+			if (ps[pid]->sched)
+				close(ps[pid]->sched);
+			if (ps[pid]->smaps)
+				fclose(ps[pid]->smaps);
 			continue;
 		}
 		if (!sscanf(buf, "%s %s %*s", rt, wt))
@@ -304,6 +313,25 @@ schedstat_next:
 				 - ps[pid]->sample[ps[pid]->first].runtime)
 				 / 1000000000.0;
 
+		/* Pss */
+		if (!ps[pid]->smaps) {
+			sprintf(filename, "/proc/%d/smaps", pid);
+			ps[pid]->smaps = fopen(filename, "r");
+			if (!ps[pid]->smaps)
+				continue;
+		} else {
+			(void) rewind(ps[pid]->smaps);
+		}
+
+		while (fgets(buf, sizeof(buf) - 1, ps[pid]->smaps) != NULL) {
+			if (strncmp("Pss:", buf, 4)) {
+				int p;
+				if (!sscanf(buf, "%*s %d %*s", &p))
+					continue;
+				ps[pid]->sample[sample].pss += p;
+			}
+		}
+
 		/* catch process rename, try to randomize time */
 		if (((samples - ps[pid]->first) + pid) % (hz / 4) == 0) {
 
@@ -316,7 +344,12 @@ schedstat_next:
 					continue;
 			}
 			if (pread(ps[pid]->sched, buf, sizeof(buf) - 1, 0) <= 0) {
+				/* clean up file descriptors */
 				close(ps[pid]->sched);
+				if (ps[pid]->schedstat)
+					close(ps[pid]->schedstat);
+				if (ps[pid]->smaps)
+					fclose(ps[pid]->smaps);
 				continue;
 			}
 
