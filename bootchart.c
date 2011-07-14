@@ -14,6 +14,7 @@
 
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -44,6 +45,7 @@ int overrun = 0;
 
 int exiting = 0;
 
+struct rlimit rlim;
 
 void signal_handler(int sig)
 {
@@ -61,8 +63,13 @@ int main(int argc, char *argv[])
 	char datestr[200];
 	time_t t;
 	FILE *f;
+	int i;
 
 	memset(&t, 0, sizeof(time_t));
+
+	rlim.rlim_cur = 4096;
+	rlim.rlim_max = 4096;
+	(void) setrlimit(RLIMIT_NOFILE, &rlim);
 
 	f = fopen("/etc/bootchartd.conf", "r");
 	if (f) {
@@ -224,6 +231,16 @@ int main(int argc, char *argv[])
 		if (samples > len)
 			break;
 
+	}
+
+	/* do some cleanup, close fd's */
+	for ( i = 0; i < MAXPIDS ; i++) {
+		if (!ps[i])
+			continue;
+		if (ps[i]-> schedstat)
+			close(ps[i]->schedstat);
+		if (ps[i]->sched)
+			close(ps[i]->sched);
 	}
 
 	t = time(NULL);
