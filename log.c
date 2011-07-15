@@ -41,7 +41,6 @@ void log_uptime(void)
 {
 	FILE *f;
 	char str[32];
-	double now;
 	double uptime;
 
 	f = fopen("/proc/uptime", "r");
@@ -54,13 +53,13 @@ void log_uptime(void)
 	fclose(f);
 	uptime = strtod(str, NULL);
 
-	now = gettime_ns();
+	log_start = gettime_ns();
 
 	/* start graph at kernel boot time */
 	if (relative)
-		graph_start = now;
+		graph_start = log_start;
 	else
-		graph_start = now - uptime;
+		graph_start = log_start - uptime;
 }
 
 

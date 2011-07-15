@@ -28,6 +28,7 @@
 #include "bootchart.h"
 
 double graph_start;
+double log_start;
 double sampletime[MAXSAMPLES];
 struct ps_struct *ps[MAXPIDS]; /* ll */
 struct block_stat_struct blockstat[MAXSAMPLES];
