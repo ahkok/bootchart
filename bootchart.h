@@ -78,6 +78,7 @@ struct ps_struct {
 
 
 extern double graph_start;
+extern double log_start;
 extern double sampletime[];
 extern struct ps_struct *ps[]; /* ll */
 extern struct block_stat_struct blockstat[];

@@ -28,6 +28,7 @@
 #include "bootchart.h"
 
 double graph_start;
+double log_start;
 double sampletime[MAXSAMPLES];
 struct ps_struct *ps[MAXPIDS]; /* ll */
 struct block_stat_struct blockstat[MAXSAMPLES];
@@ -234,7 +235,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* do some cleanup, close fd's */
-	for ( i = 0; i < samples ; i++) {
+	for ( i = 0; i < MAXPIDS ; i++) {
 		if (!ps[i])
 			continue;
 		if (ps[i]-> schedstat)
