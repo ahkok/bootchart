@@ -78,8 +78,7 @@ void svg_header(void)
 	svg("      rect.bo    { fill: rgb(192,64,64); stroke-width: 0; fill-opacity: 0.7; }\n");
 	svg("      rect.ps    { fill: rgb(192,192,192); stroke: rgb(128,128,128); fill-opacity: 0.7; }\n");
 	svg("      rect.box   { fill: rgb(240,240,240); stroke: rgb(192,192,192); }\n");
-	svg("      rect.clrw  { stroke: rgb(192,192,192); }\n");
-
+	svg("      rect.clrw  { stroke-width: 0; fill-opacity: 0.7;}\n");
 	svg("      line       { stroke: rgb(64,64,64); stroke-width: 1; }\n");
 	svg("//    line.sec1  { }\n");
 	svg("      line.sec5  { stroke-width: 2; }\n");
