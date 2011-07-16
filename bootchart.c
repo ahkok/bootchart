@@ -268,11 +268,12 @@ int main(int argc, char *argv[])
 
 	svg_do();
 
+	fprintf(stderr, "bootchartd: Wrote %s\n", output_file);
 	fclose(of);
 
 	/* don't complain when overrun once, happens most commonly on 1st sample */
 	if (overrun > 1)
-		fprintf(stderr, "Warning: sample time overrun %i times\n", overrun);
+		fprintf(stderr, "bootchartd: Warning: sample time overrun %i times\n", overrun);
 
 	return 0;
 }
