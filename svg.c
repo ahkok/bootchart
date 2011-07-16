@@ -270,8 +270,8 @@ void svg_pss_graph(void)
 					svg("  <text x=\"%.03f\" y=\"%.03f\">%s [%i]</text>\n",
 					    time_to_graph(sampletime[i] - graph_start) + 5,
 					    2000.0 - (top / 500.0) + 14,
-					    ps[i]->name,
-					    ps[i]->pid);
+					    ps[p]->name,
+					    ps[p]->pid);
 			}
 
 			/* and draw the rest on top of this */
