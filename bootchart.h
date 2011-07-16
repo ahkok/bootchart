@@ -86,6 +86,7 @@ extern struct cpu_stat_struct cpustat[];
 extern int pscount;
 extern int relative;
 extern int filter;
+extern int pss;
 extern int samples;
 extern int cpus;
 extern int len;

@@ -36,6 +36,7 @@ struct cpu_stat_struct cpustat[MAXCPUS];
 int pscount;
 int relative;
 int filter = 1;
+int pss = 0;
 int samples;
 int cpus;
 double interval;
@@ -101,9 +102,11 @@ int main(int argc, char *argv[])
 			if (!strcmp(key, "freq"))
 				hz = atoi(val);
 			if (!strcmp(key, "rel"))
-				relative = atoi(val);;
+				relative = atoi(val);
 			if (!strcmp(key, "filter"))
-				filter = atoi(val);;
+				filter = atoi(val);
+			if (!strcmp(key, "pss"))
+				pss = atoi(val);
 			if (!strcmp(key, "output"))
 				strncpy(output_path, val, PATH_MAX - 1);
 		}
@@ -115,6 +118,7 @@ int main(int argc, char *argv[])
 			{"rel", 0, NULL, 'r'},
 			{"freq", 1, NULL, 'f'},
 			{"samples", 1, NULL, 'n'},
+			{"pss", 0, NULL, 'p'},
 			{"output", 1, NULL, 'o'},
 			{"filter", 0, NULL, 'F'},
 			{"help", 0, NULL, 'h'},
@@ -123,7 +127,7 @@ int main(int argc, char *argv[])
 
 		int index = 0, c;
 
-		c = getopt_long(argc, argv, "rf:n:o:Fh", opts, &index);
+		c = getopt_long(argc, argv, "rpf:n:o:Fh", opts, &index);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -142,11 +146,15 @@ int main(int argc, char *argv[])
 		case 'o':
 			strncpy(output_path, optarg, PATH_MAX - 1);
 			break;
+		case 'p':
+			pss = 1;
+			break;
 		case 'h':
 			fprintf(stderr, "Usage: %s [OPTIONS]\n", argv[0]);
 			fprintf(stderr, " --rel,     -r            Record time relative to recording\n");
 			fprintf(stderr, " --freq,    -f N          Sample frequency [%d]\n", hz);
 			fprintf(stderr, " --samples, -n N          Stop sampling at [%d] samples\n", len);
+			fprintf(stderr, " --pss,     -p            Enable PSS graph (CPU intensive)\n");
 			fprintf(stderr, " --output,  -o [PATH]     Path to output files [%s]\n", output_path);
 			fprintf(stderr, " --filter,  -F            Disable filtering of processes from the graph\n");
 			fprintf(stderr, "                          that are of less importance or short-lived\n");
@@ -239,7 +247,7 @@ int main(int argc, char *argv[])
 		if (!ps[i])
 			continue;
 	/*
-		if (ps[i]-> schedstat)
+		if (ps[i]->schedstat)
 			close(ps[i]->schedstat);
 		if (ps[i]->sched)
 			close(ps[i]->sched);

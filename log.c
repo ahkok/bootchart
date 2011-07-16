@@ -312,6 +312,8 @@ schedstat_next:
 				 - ps[pid]->sample[ps[pid]->first].runtime)
 				 / 1000000000.0;
 
+		if (!pss)
+			goto catch_rename;
 		/* Pss */
 		if (!ps[pid]->smaps) {
 			sprintf(filename, "/proc/%d/smaps", pid);
@@ -331,6 +333,7 @@ schedstat_next:
 			}
 		}
 
+catch_rename:
 		/* catch process rename, try to randomize time */
 		if (((samples - ps[pid]->first) + pid) % (hz / 4) == 0) {
 

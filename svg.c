@@ -65,7 +65,7 @@ void svg_header(void)
 	//svg("<g transform=\"translate(10,%d)\">\n", 1000 + 150 + (pcount * 20));
 	svg("<svg width=\"%.0fpx\" height=\"%ipx\" version=\"1.1\" ",
 	    150 + 10 + time_to_graph(sampletime[samples-1] - graph_start),
-	    2000 + 1000 + 150 + 150 + (pcount * 20));
+	    (pss ? 2000 + 150 : 0) + 1000 + 150 + (pcount * 20));
 	svg("xmlns=\"http://www.w3.org/2000/svg\">\n\n");
 
 	/* style sheet */
@@ -234,19 +234,20 @@ void svg_pss_graph(void)
 	int i;
 	int p;
 
-	svg("<!-- Pss memory size graph -->\n");
+	svg("\n\n<!-- Pss memory size graph -->\n");
 
-	svg("<text class=\"t2\" x=\"5\" y=\"-15\">Memory allocation - Pss</text>\n");
+	svg("\n  <text class=\"t2\" x=\"5\" y=\"-15\">Memory allocation - Pss</text>\n");
 
 	/* vsize 1000 == 1000mb */
 	svg_graph_box(100);
 	/* draw some hlines for usable memory sizes */
-	for (i = 0; i < 2000 ; i += 200)
-		svg("<line class=\"dot\" x1=\"%.03f\" y1=\"%d\" x2=\"%.03f\" y2=\"%d\"/>\n",
+	for (i = 200; i < 2000; i += 200)
+		svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%d\" x2=\"%.03f\" y2=\"%d\"/>\n",
 			time_to_graph(0),
 			i,
 			time_to_graph(sampletime[samples-1] - graph_start),
 			i);
+	svg("\n");
 
 	/* now plot the graph itself */
 	for (i = 1; i < samples ; i++) {
@@ -254,23 +255,39 @@ void svg_pss_graph(void)
 		int top;
 
 		bottom = 0;
+		top = 0;
+
+		/* put all the small pss blocks into the bottom */
 		for (p = 0; p < MAXPIDS ; p++) {
 			if (!ps[p])
 				continue;
-			top = bottom + ps[p]->sample[i].pss;
+			if (ps[p]->sample[i].pss <= 2000)
+				top += ps[p]->sample[i].pss;
+		};
+		svg("    <rect class=\"clrw\" style=\"fill: %s\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
+		    "rgb(64,64,64)",
+		    time_to_graph(sampletime[i - 1] - graph_start),
+		    2000.0 - (top / 500.0),
+		    time_to_graph(sampletime[i] - sampletime[i - 1]),
+		    (top - bottom) / 500.0);
+
+		bottom = top;
+	
+		/* now plot the ones that are of significant size */	
+		for (p = 0; p < MAXPIDS ; p++) {
+			if (!ps[p])
+				continue;
 			/* don't draw anything smaller than 2mb */
 			if (ps[p]->sample[i].pss > 2000) {
-				/* draw box from bottom to top */
+				top = bottom + ps[p]->sample[i].pss;
 				svg("    <rect class=\"clrw\" style=\"fill: %s\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 				    colorwheel[p % 12],
 				    time_to_graph(sampletime[i - 1] - graph_start),
 				    2000.0 - (top / 500.0),
 				    time_to_graph(sampletime[i] - sampletime[i - 1]),
 				    (top - bottom) / 500.0);
+				bottom = top;
 			}
-
-			/* and draw the rest on top of this */
-			bottom = top;
 		}
 	}
 
@@ -280,34 +297,44 @@ void svg_pss_graph(void)
 		int top;
 
 		bottom = 0;
+		top = 0;
+
+		/* put all the small pss blocks into the bottom */
 		for (p = 0; p < MAXPIDS ; p++) {
 			if (!ps[p])
 				continue;
-			top = bottom + ps[p]->sample[i].pss;
+			if (ps[p]->sample[i].pss <= 2000)
+				top += ps[p]->sample[i].pss;
+		};
+
+		bottom = top;
+	
+		/* now plot the ones that are of significant size */	
+		for (p = 0; p < MAXPIDS ; p++) {
+			if (!ps[p])
+				continue;
 			/* don't draw anything smaller than 2mb */
 			if (ps[p]->sample[i].pss > 2000) {
+				top = bottom + ps[p]->sample[i].pss;
 				/* draw a label with the process / PID */
 				if ((i == 1) || (ps[p]->sample[i - 1].pss <= 2000))
 					svg("  <text x=\"%.03f\" y=\"%.03f\">%s [%i]</text>\n",
-					    time_to_graph(sampletime[i] - graph_start) + 5,
-					    2000.0 - (top / 500.0) + 14,
+					    time_to_graph(sampletime[i] - graph_start),
+					    2000.0 - (bottom / 500.0),
 					    ps[p]->name,
 					    ps[p]->pid);
+				bottom = top;
 			}
-
-			/* and draw the rest on top of this */
-			bottom = top;
 		}
 	}
 
 	/* debug output - full data dump */
-	svg("\n<!-- PSS map - csv format -->\n");
+	svg("\n\n<!-- PSS map - csv format -->\n");
 	for (p = 0; p < MAXPIDS ; p++) {
 		if (!ps[p])
 			continue;
 		svg("<!-- %s [%d] pss=", ps[p]->name, p);
 		for (i = 0; i < samples ; i++) {
-			/* plain dump all data */
 			svg("%d," , ps[p]->sample[i].pss);
 		}
 		svg(" -->\n");
@@ -867,9 +894,11 @@ void svg_do(void)
 	svg_top_ten();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,%d)\">\n", 1000 + 150 + (pcount * 20));
-	svg_pss_graph();
-	svg("</g>\n\n");
+	if (pss) {
+		svg("<g transform=\"translate(10,%d)\">\n", 1000 + 150 + (pcount * 20));
+		svg_pss_graph();
+		svg("</g>\n\n");
+	}
 
 	/* svg footer */
 	svg("\n</svg>\n");
