@@ -238,12 +238,14 @@ int main(int argc, char *argv[])
 	for ( i = 0; i < MAXPIDS ; i++) {
 		if (!ps[i])
 			continue;
+	/*
 		if (ps[i]-> schedstat)
 			close(ps[i]->schedstat);
 		if (ps[i]->sched)
 			close(ps[i]->sched);
 		if (ps[i]->smaps)
 			fclose(ps[i]->smaps);
+	 */
 	}
 
 	t = time(NULL);

@@ -36,6 +36,21 @@ char str[8092];
 
 #define svg(a...) do { sprintf(str, ## a); fputs(str, of); fflush(of); } while (0)
 
+char *colorwheel[12] = {
+	"rgb(255,32,32)",  // red
+	"rgb(32,192,192)", // cyan
+	"rgb(255,128,32)", // orange
+	"rgb(128,32,192)", // blue-violet
+	"rgb(255,255,32)", // yellow
+	"rgb(192,32,128)", // red-violet
+	"rgb(32,255,32)",  // green
+	"rgb(255,64,32)",  // red-orange
+	"rgb(32,32,255)",  // blue
+	"rgb(255,192,32)", // yellow-orange
+	"rgb(192,32,192)", // violet
+	"rgb(32,192,32)"   // yellow-green
+};
+
 double idletime = -1.0;
 int pfiltered = 0;
 int pcount = 0;
@@ -60,6 +75,7 @@ void svg_header(void)
 	svg("      rect.bo    { fill: rgb(192,64,64); stroke-width: 0; fill-opacity: 0.7; }\n");
 	svg("      rect.ps    { fill: rgb(192,192,192); stroke: rgb(128,128,128); fill-opacity: 0.7; }\n");
 	svg("      rect.box   { fill: rgb(240,240,240); stroke: rgb(192,192,192); }\n");
+	svg("      rect.clrw  { stroke: rgb(192,192,192); }\n");
 
 	svg("      line       { stroke: rgb(64,64,64); stroke-width: 1; }\n");
 	svg("//    line.sec1  { }\n");
@@ -220,20 +236,62 @@ void svg_pss_graph(void)
 
 	svg("<text class=\"t2\" x=\"5\" y=\"-15\">Memory allocation - Pss</text>\n");
 
+	/* vsize 1000 == 1000mb */
 	svg_graph_box(100);
+	/* draw some hlines for usable memory sizes */
+	for (i = 0; i < 2000 ; i += 200)
+		svg("<line class=\"dot\" x1=\"%.03f\" y1=\"%d\" x2=\"%.03f\" y2=\"%d\"/>\n",
+			time_to_graph(0),
+			i,
+			time_to_graph(sampletime[samples-1] - graph_start),
+			i);
 
-	/* loop over time on X axis */
-	for (i = 0; i < samples ; i++) {
-		/* Y axis - stack all processes on top of eachother */
+	/* now plot the graph itself */
+	for (i = 1; i < samples ; i++) {
+		int bottom;
+		int top;
+
+		bottom = 0;
 		for (p = 0; p < MAXPIDS ; p++) {
 			if (!ps[p])
 				continue;
-			if (ps[p]->sample[i].pss == 0)
-				continue;
+			top = bottom + ps[p]->sample[i].pss;
+			/* don't draw anything smaller than 2mb */
+			if (ps[p]->sample[i].pss > 2000) {
+				/* draw box from bottom to top */
+				svg("    <rect class=\"clrw\" style=\"fill: %s\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
+				    colorwheel[p % 12],
+				    time_to_graph(sampletime[i - 1] - graph_start),
+				    2000.0 - (top / 500.0),
+				    time_to_graph(sampletime[i] - sampletime[i - 1]),
+				    (top - bottom) / 500.0);
+				/* draw a label with the process / PID */
+				if ((i == 1) || (ps[p]->sample[i - 1].pss <= 2000))
+					svg("  <text x=\"%.03f\" y=\"%.03f\">%s [%i]</text>\n",
+					    time_to_graph(sampletime[i] - graph_start) + 5,
+					    2000.0 - (top / 500.0) + 14,
+					    ps[i]->name,
+					    ps[i]->pid);
+			}
 
-			
+			/* and draw the rest on top of this */
+			bottom = top;
 		}
 	}
+
+	/* debug output - full data dump */
+	svg("\n<!-- PSS map - csv format -->\n");
+	for (p = 0; p < MAXPIDS ; p++) {
+		if (!ps[p])
+			continue;
+		svg("<!-- %s [%d] pss=", ps[p]->name, p);
+		for (i = 0; i < samples ; i++) {
+			/* plain dump all data */
+			svg("%d," , ps[p]->sample[i].pss);
+		}
+		svg(" -->\n");
+	}
+
 }
 
 void svg_io_bi_bar(void)
@@ -786,6 +844,10 @@ void svg_do(void)
 
 	svg("<g transform=\"translate(10,200)\">\n");
 	svg_top_ten();
+	svg("</g>\n\n");
+
+	svg("<g transform=\"translate(10,%d)\">\n", 1000 + 150 + (pcount * 20));
+	svg_pss_graph();
 	svg("</g>\n\n");
 
 	/* svg footer */

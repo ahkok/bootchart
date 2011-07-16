@@ -296,8 +296,8 @@ schedstat_next:
 			close(ps[pid]->schedstat);
 			if (ps[pid]->sched)
 				close(ps[pid]->sched);
-			if (ps[pid]->smaps)
-				fclose(ps[pid]->smaps);
+			//if (ps[pid]->smaps)
+			//	fclose(ps[pid]->smaps);
 			continue;
 		}
 		if (!sscanf(buf, "%s %s %*s", rt, wt))
@@ -319,13 +319,13 @@ schedstat_next:
 			if (!ps[pid]->smaps)
 				continue;
 		} else {
-			(void) rewind(ps[pid]->smaps);
+			rewind(ps[pid]->smaps);
 		}
 
 		while (fgets(buf, sizeof(buf) - 1, ps[pid]->smaps) != NULL) {
-			if (strncmp("Pss:", buf, 4)) {
+			if (!strncmp("Pss:", buf, 4)) {
 				int p;
-				if (!sscanf(buf, "%*s %d %*s", &p))
+				if (sscanf(buf, "%*s %d %*s", &p) != 1)
 					continue;
 				ps[pid]->sample[sample].pss += p;
 			}
@@ -347,8 +347,8 @@ schedstat_next:
 				close(ps[pid]->sched);
 				if (ps[pid]->schedstat)
 					close(ps[pid]->schedstat);
-				if (ps[pid]->smaps)
-					fclose(ps[pid]->smaps);
+				//if (ps[pid]->smaps)
+				//	fclose(ps[pid]->smaps);
 				continue;
 			}
 
