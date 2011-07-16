@@ -62,7 +62,10 @@ void svg_header(void)
 	svg("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" ");
 	svg("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
 
-	svg("<svg width=\"100%%\" height=\"100%%\" version=\"1.1\" ");
+	//svg("<g transform=\"translate(10,%d)\">\n", 1000 + 150 + (pcount * 20));
+	svg("<svg width=\"%.0fpx\" height=\"%ipx\" version=\"1.1\" ",
+	    150 + 10 + time_to_graph(sampletime[samples-1] - graph_start),
+	    2000 + 1000 + 150 + 150 + (pcount * 20));
 	svg("xmlns=\"http://www.w3.org/2000/svg\">\n\n");
 
 	/* style sheet */
