@@ -268,6 +268,25 @@ void svg_pss_graph(void)
 				    2000.0 - (top / 500.0),
 				    time_to_graph(sampletime[i] - sampletime[i - 1]),
 				    (top - bottom) / 500.0);
+			}
+
+			/* and draw the rest on top of this */
+			bottom = top;
+		}
+	}
+
+	/* overlay all the text labels */
+	for (i = 1; i < samples ; i++) {
+		int bottom;
+		int top;
+
+		bottom = 0;
+		for (p = 0; p < MAXPIDS ; p++) {
+			if (!ps[p])
+				continue;
+			top = bottom + ps[p]->sample[i].pss;
+			/* don't draw anything smaller than 2mb */
+			if (ps[p]->sample[i].pss > 2000) {
 				/* draw a label with the process / PID */
 				if ((i == 1) || (ps[p]->sample[i - 1].pss <= 2000))
 					svg("  <text x=\"%.03f\" y=\"%.03f\">%s [%i]</text>\n",
