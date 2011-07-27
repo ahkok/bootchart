@@ -83,7 +83,7 @@ void svg_header(void)
 	svg("//    line.sec1  { }\n");
 	svg("      line.sec5  { stroke-width: 2; }\n");
 	svg("      line.sec01 { stroke: rgb(224,224,224); stroke-width: 1; }\n");
-	svg("      line.dot   { stroke-dasharray: 1 2; }\n");
+	svg("      line.dot   { stroke-dasharray: 2 4; }\n");
 	svg("      line.idle  { stroke: rgb(64,64,64); stroke-dasharray: 10 6; stroke-opacity: 0.7; }\n");
 
 	svg("      .run       { font-size: 8; font-style: italic; }\n");
@@ -679,13 +679,15 @@ void svg_ps_bars(void)
 		 * but it's unreliable and gives bogus numbers */
 		starttime = sampletime[ps[i]->first];
 
-		/* remember where _to_ our children need to draw a line */
-		ps[i]->pos_x = time_to_graph(starttime - graph_start);
-		ps[i]->pos_y = ps_to_graph(j+1); /* bottom left corner */
+		if (!ps_filter(i)) {
+			/* remember where _to_ our children need to draw a line */
+			ps[i]->pos_x = time_to_graph(starttime - graph_start);
+			ps[i]->pos_y = ps_to_graph(j+1); /* bottom left corner */
+		} else {
+			/* hook children to our parent coords instead */
+			ps[i]->pos_x = ps[ps[i]->ppid]->pos_x;
+			ps[i]->pos_y = ps[ps[i]->ppid]->pos_y;
 
-		/* filter */
-		if (ps_filter(i)) {
-// FIXME
 			/* if this is the last child, we might still need to draw a connecting line */
 			if ((!ps[i]->next) && (ps[ps[i]->ppid]))
 				svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%i\" x2=\"%.03f\" y2=\"%.03f\" />\n",
