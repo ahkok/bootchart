@@ -330,12 +330,14 @@ void svg_pss_graph(void)
 			if (ps[p]->sample[i].pss > 2000) {
 				top = bottom + ps[p]->sample[i].pss;
 				/* draw a label with the process / PID */
-				if ((i == 1) || (ps[p]->sample[i - 1].pss <= 2000))
+				if ((i == 1) || (ps[p]->sample[i - 1].pss <= 2000)) {
 					svg("  <text x=\"%.03f\" y=\"%.03f\">%s [%i]</text>\n",
 					    time_to_graph(sampletime[i] - graph_start),
-					    2000.0 - (bottom / 500.0),
+					    2005.0 - (bottom / 500.0) - ((top - bottom) / 2) / 500.0,
 					    ps[p]->name,
 					    ps[p]->pid);
+					svg("<!-- bottom %d top %d -->\n", bottom, top);
+				}
 				bottom = top;
 			}
 		}
