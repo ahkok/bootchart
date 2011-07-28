@@ -250,12 +250,16 @@ void svg_pss_graph(void)
 	/* vsize 1000 == 1000mb */
 	svg_graph_box(100);
 	/* draw some hlines for usable memory sizes */
-	for (i = 200; i < 2000; i += 200)
+	for (i = 200; i < 2000; i += 200) {
 		svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%d\" x2=\"%.03f\" y2=\"%d\"/>\n",
 			time_to_graph(0),
 			i,
 			time_to_graph(sampletime[samples-1] - graph_start),
 			i);
+		svg("  <text class=\"sec\" x=\"%.03f\" y=\"%d\">%dM</text>\n",
+		    time_to_graph(sampletime[samples-1] - graph_start) + 5,
+		    i, 1000 - (i / 2));
+	}
 	svg("\n");
 
 	/* now plot the graph itself */
