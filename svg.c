@@ -58,14 +58,23 @@ int pcount = 0;
 
 void svg_header(void)
 {
+	float w;
+	int h;
+
+	/* min width is about 1600px */
+	w = 150 + 10 + time_to_graph(sampletime[samples-1] - graph_start);
+	w = ((w < 1600.0) ? 1600.0 : w);
+
+	/* height is variable based on pss */
+	h = (pss ? 2000 + 150 : 0) + 1000 + 150 + (pcount * 20);
+
 	svg("<?xml version=\"1.0\" standalone=\"no\"?>\n");
 	svg("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" ");
 	svg("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
 
 	//svg("<g transform=\"translate(10,%d)\">\n", 1000 + 150 + (pcount * 20));
 	svg("<svg width=\"%.0fpx\" height=\"%ipx\" version=\"1.1\" ",
-	    150 + 10 + time_to_graph(sampletime[samples-1] - graph_start),
-	    (pss ? 2000 + 150 : 0) + 1000 + 150 + (pcount * 20));
+	    w, h);
 	svg("xmlns=\"http://www.w3.org/2000/svg\">\n\n");
 
 	/* style sheet */
