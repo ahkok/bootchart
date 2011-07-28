@@ -332,6 +332,8 @@ schedstat_next:
 				ps[pid]->sample[sample].pss += p;
 			}
 		}
+		if (ps[pid]->sample[sample].pss > ps[pid]->pss_max)
+			ps[pid]->pss_max = ps[pid]->sample[sample].pss;
 
 catch_rename:
 		/* catch process rename, try to randomize time */

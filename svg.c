@@ -833,7 +833,7 @@ void svg_ps_bars(void)
 }
 
 
-void svg_top_ten(void)
+void svg_top_ten_cpu(void)
 {
 	struct ps_struct *top[10];
 	struct ps_struct emptyps;
@@ -859,9 +859,43 @@ void svg_top_ten(void)
 
 	svg("<text class=\"t2\" x=\"20\" y=\"0\">Top CPU consumers:</text>\n");
 	for (n = 0; n < 10; n++)
-		svg("<text class=\"t3\" x=\"20\" y=\"%d\">%.03fs - %s[%d]</text>\n",
+		svg("<text class=\"t3\" x=\"20\" y=\"%d\">%3.03fs - %s[%d]</text>\n",
 		    20 + (n * 13),
 		    top[n]->total,
+		    top[n]->name,
+		    top[n]->pid);
+}
+
+
+void svg_top_ten_pss(void)
+{
+	struct ps_struct *top[10];
+	struct ps_struct emptyps;
+	int i, n, m;
+
+	memset(&emptyps, 0, sizeof(emptyps));
+	for (n=0; n < 10; n++)
+		top[n] = &emptyps;
+
+	/* walk all ps's and setup ptrs */
+	i = 0;
+	while ((i = get_next_ps(i))) {
+		for (n = 0; n < 10; n++) {
+			if (ps[i]->pss_max <= top[n]->pss_max)
+				continue;
+			/* cascade insert */
+			for (m = 9; m > n; m--)
+				top[m] = top[m-1];
+			top[n] = ps[i];
+			break;
+		}
+	}
+
+	svg("<text class=\"t2\" x=\"20\" y=\"0\">Top PSS consumers:</text>\n");
+	for (n = 0; n < 10; n++)
+		svg("<text class=\"t3\" x=\"20\" y=\"%d\">%dM - %s[%d]</text>\n",
+		    20 + (n * 13),
+		    top[n]->pss_max,
 		    top[n]->name,
 		    top[n]->pid);
 }
@@ -908,12 +942,16 @@ void svg_do(void)
 	svg("</g>\n\n");
 
 	svg("<g transform=\"translate(10,200)\">\n");
-	svg_top_ten();
+	svg_top_ten_cpu();
 	svg("</g>\n\n");
 
 	if (pss) {
 		svg("<g transform=\"translate(10,%d)\">\n", 1000 + 150 + (pcount * 20));
 		svg_pss_graph();
+		svg("</g>\n\n");
+
+		svg("<g transform=\"translate(410,200)\">\n");
+		svg_top_ten_pss();
 		svg("</g>\n\n");
 	}
 

@@ -69,6 +69,9 @@ struct ps_struct {
 	/* record human readable total cpu time */
 	double total;
 
+	/* largest PSS size found */
+	int pss_max;
+
 	/* for drawing connection lines later */
 	double pos_x;
 	double pos_y;
