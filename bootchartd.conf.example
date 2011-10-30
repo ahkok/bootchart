@@ -45,6 +45,11 @@
 #output=<folder name, defaults to /var/log>
 
 #
+# path to non-standard init
+#
+#init=/path/to/init
+
+#
 # PSS graph - memory usage graph
 #
 # Enabling this option will make bootchart log PSS usage from /proc/*/smaps for
