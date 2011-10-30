@@ -60,6 +60,7 @@ void signal_handler(int sig)
 int main(int argc, char *argv[])
 {
 	struct sigaction sig;
+	char init_path[PATH_MAX] = "/sbin/init";
 	char output_path[PATH_MAX] = "/var/log";
 	char output_file[PATH_MAX];
 	char datestr[200];
@@ -109,6 +110,8 @@ int main(int argc, char *argv[])
 				pss = atoi(val);
 			if (!strcmp(key, "output"))
 				strncpy(output_path, val, PATH_MAX - 1);
+			if (!strcmp(key, "init"))
+				strncpy(init_path, val, PATH_MAX - 1);
 		}
 		fclose(f);
 	}
@@ -120,6 +123,7 @@ int main(int argc, char *argv[])
 			{"samples", 1, NULL, 'n'},
 			{"pss", 0, NULL, 'p'},
 			{"output", 1, NULL, 'o'},
+			{"init", 1, NULL, 'i'},
 			{"filter", 0, NULL, 'F'},
 			{"help", 0, NULL, 'h'},
 			{0, 0, NULL, 0}
@@ -127,7 +131,7 @@ int main(int argc, char *argv[])
 
 		int index = 0, c;
 
-		c = getopt_long(argc, argv, "rpf:n:o:Fh", opts, &index);
+		c = getopt_long(argc, argv, "rpf:n:o:i:Fh", opts, &index);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -146,6 +150,9 @@ int main(int argc, char *argv[])
 		case 'o':
 			strncpy(output_path, optarg, PATH_MAX - 1);
 			break;
+		case 'i':
+			strncpy(init_path, optarg, PATH_MAX - 1);
+			break;
 		case 'p':
 			pss = 1;
 			break;
@@ -156,6 +163,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, " --samples, -n N          Stop sampling at [%d] samples\n", len);
 			fprintf(stderr, " --pss,     -p            Enable PSS graph (CPU intensive)\n");
 			fprintf(stderr, " --output,  -o [PATH]     Path to output files [%s]\n", output_path);
+			fprintf(stderr, " --init,    -i [PATH]     Path to init executable [%s]\n", init_path);
 			fprintf(stderr, " --filter,  -F            Disable filtering of processes from the graph\n");
 			fprintf(stderr, "                          that are of less importance or short-lived\n");
 			fprintf(stderr, " --help,    -h            Display this message\n");
@@ -175,13 +183,13 @@ int main(int argc, char *argv[])
 	/*
 	 * If the kernel executed us through init=/sbin/bootchartd, then
 	 * fork:
-	 * - parent execs /sbin/init as pid=1
+	 * - parent execs executable specified via init_path[] (/sbin/init by default) as pid=1
 	 * - child logs data
 	 */
 	if (getpid() == 1) {
 		if (fork()) {
 			/* parent */
-			execl("/sbin/init", "/sbin/init", NULL);
+			execl(init_path, init_path, NULL);
 		}
 	}
 
