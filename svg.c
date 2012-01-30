@@ -63,8 +63,8 @@ void svg_header(void)
 	w = ((w < 1600.0) ? 1600.0 : w);
 
 	/* height is variable based on pss */
-	h = (pss ? 2000 + (scale_y * 6) : 0)
-	     + 400 + (scale_y * 30) + ps_to_graph(pcount);
+	h = (pss ? 2000 + (scale_y * 7) : 0)
+	     + 400 + (scale_y * 28) + ps_to_graph(pcount);
 
 	svg("<?xml version=\"1.0\" standalone=\"no\"?>\n");
 	svg("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" ");
@@ -889,7 +889,7 @@ void svg_top_ten_pss(void)
 
 	svg("<text class=\"t2\" x=\"20\" y=\"0\">Top PSS consumers:</text>\n");
 	for (n = 0; n < 10; n++)
-		svg("<text class=\"t3\" x=\"20\" y=\"%d\">%dM - %s[%d]</text>\n",
+		svg("<text class=\"t3\" x=\"20\" y=\"%d\">%dK - %s[%d]</text>\n",
 		    20 + (n * 13),
 		    top[n]->pss_max,
 		    top[n]->name,
@@ -917,19 +917,19 @@ void svg_do(void)
 	svg_io_bi_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 6));
+	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 7));
 	svg_io_bo_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 12));
+	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 14));
 	svg_cpu_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 18));
+	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 21));
 	svg_wait_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 24));
+	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 28));
 	svg_ps_bars();
 	svg("</g>\n\n");
 
@@ -942,7 +942,7 @@ void svg_do(void)
 	svg("</g>\n\n");
 
 	if (pss) {
-		svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 30) + ps_to_graph(pcount));
+		svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 28) + ps_to_graph(pcount));
 		svg_pss_graph();
 		svg("</g>\n\n");
 
