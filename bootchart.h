@@ -94,6 +94,8 @@ extern int samples;
 extern int cpus;
 extern int len;
 extern int hz;
+extern int scale_x;
+extern int scale_y;
 extern int overrun;
 extern double interval;
 

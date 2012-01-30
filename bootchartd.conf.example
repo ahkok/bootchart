@@ -5,10 +5,10 @@
 #
 # How long do I make my graph?
 #
-# Preferably, you record enough time so that the entire boot process is recorded
-# in the bootchart, plus some extra. The default recording samples/freq is 20secs.
-# So, if you want to record 30secs instead of 20secs, you'll have to increase
-# the amount of samples to 30*25 = 750.
+# Preferably, you record enough time so that the entire boot process
+# is recorded in the bootchart, plus some extra. The default recording
+# samples/freq is 20secs.  So, if you want to record 30secs instead of
+# 20secs, you'll have to increase the amount of samples to 30*25 = 750.
 
 
 #
@@ -24,18 +24,21 @@
 #
 # rel - do not graph anything before the first sample is recorded.
 #
-# This is useful when running bootchart if the system is already up for a long
-# time, in which case the monotonic clock will be so large that the graph would
-# be unworkably large, as by default the graph starts at 0 (kernel boot start).
-# Set this to 1 if you run bootchart from the cmdline.
+# This is useful when running bootchart if the system is already up for
+# a long time, in which case the monotonic clock will be so large that
+# the graph would be unworkably large, as by default the graph starts
+# at 0 (kernel boot start).  Set this to 1 if you run bootchart from
+# the cmdline.
+#
 #rel=0
 
 #
 # filter
 #
-# filter out insignificant processes from the process chart. This makes the process
-# chart a lot more compact, but you'll not be able to see shortlived processes or
-# processes that don't actually use any measurable (< 0.001sec) CPU time.
+# filter out insignificant processes from the process chart. This makes
+# the process chart a lot more compact, but you'll not be able to see
+# shortlived processes or processes that don't actually use any
+# measurable (< 0.001sec) CPU time.
 #
 #filter=1
 
@@ -52,9 +55,29 @@
 #
 # PSS graph - memory usage graph
 #
-# Enabling this option will make bootchart log PSS usage from /proc/*/smaps for
-# each process, which is highly CPU intensive. You're advised to lower the 'freq'
-# value. Expect many dropped samples - PSS measurement can take up to 1sec of time
-# on an average Atom platform.
+# Enabling this option will make bootchart log PSS usage from /proc/*/smaps
+# for each process, which is highly CPU intensive. You're advised to
+# lower the 'freq' value. Expect many dropped samples - PSS measurement
+# can take up to 1sec of time on an average Atom platform.
 #
 #pss=0
+
+#
+# scale_x - horizontal graph scale
+#
+# Modifies the default horizontal (time) scale factor.  The number given
+# specifies the amount of pixels that one second worth of time is wide
+# in the graph. So, a higher value equals longer graph.
+#
+#scale_x=100
+
+#
+# scale_y - vertical graph scale
+#
+# Modifies the default vertical scale factor. The number given specifies
+# the amount of pixels given in the graph to vertical aspects of the
+# elements. In the PS graph, 16px equals scale_y=20. A higher value
+# equals a taller graph.
+#
+#scale_y=20
+

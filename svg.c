@@ -22,11 +22,8 @@
 #include "bootchart.h"
 
 
-#define SCALE_X 100.0  /* 100px per second */
-#define SCALE_Y 20   /* 1 process bar is 16px high */
-
-#define time_to_graph(t) ((t) * SCALE_X)
-#define ps_to_graph(n) ((n) * SCALE_Y)
+#define time_to_graph(t) ((t) * scale_x)
+#define ps_to_graph(n) ((n) * scale_y)
 #define to_color(n) (192.0 - ((n) * 192.0))
 
 #define max(x, y) (((x) > (y)) ? (x) : (y))
@@ -66,7 +63,8 @@ void svg_header(void)
 	w = ((w < 1600.0) ? 1600.0 : w);
 
 	/* height is variable based on pss */
-	h = (pss ? 2000 + 150 : 0) + 1000 + 150 + (pcount * 20);
+	h = (pss ? 2000 + (scale_y * 6) : 0)
+	     + 400 + (scale_y * 30) + ps_to_graph(pcount);
 
 	svg("<?xml version=\"1.0\" standalone=\"no\"?>\n");
 	svg("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" ");
@@ -204,7 +202,7 @@ void svg_graph_box(int height)
 
 	/* outside box, fill */
 	svg("<rect class=\"box\" x=\"%.03f\" y=\"0\" width=\"%.03f\" height=\"%i\" />\n",
-	    time_to_graph(0),
+	    time_to_graph(.0),
 	    time_to_graph(sampletime[samples-1] - graph_start),
 	    ps_to_graph(height));
 
@@ -252,7 +250,7 @@ void svg_pss_graph(void)
 	/* draw some hlines for usable memory sizes */
 	for (i = 200; i < 2000; i += 200) {
 		svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%d\" x2=\"%.03f\" y2=\"%d\"/>\n",
-			time_to_graph(0),
+			time_to_graph(.0),
 			i,
 			time_to_graph(sampletime[samples-1] - graph_start),
 			i);
@@ -418,15 +416,15 @@ void svg_io_bi_bar(void)
 		if (pbi > 0.001)
 			svg("<rect class=\"bi\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 			    time_to_graph(sampletime[i - 1] - graph_start),
-			    100.0 - (pbi * 100.0),
+			    (scale_y * 5) - (pbi * (scale_y * 5)),
 			    time_to_graph(sampletime[i] - sampletime[i - 1]),
-			    pbi * 100.0);
+			    pbi * (scale_y * 5));
 
 		/* labels around highest value */
 		if (i == max_here) {
 			svg("  <text class=\"sec\" x=\"%.03f\" y=\"%.03f\">%0.2fmb/sec</text>\n",
 			    time_to_graph(sampletime[i] - graph_start) + 5,
-			    (100.0 - (pbi * 100.0)) + 15,
+			    ((scale_y * 5) - (pbi * (scale_y * 5))) + 15,
 			    max / 1024.0 / (interval / 1000000000.0));
 		}
 	}
@@ -495,15 +493,15 @@ void svg_io_bo_bar(void)
 		if (pbo > 0.001)
 			svg("<rect class=\"bo\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 			    time_to_graph(sampletime[i - 1] - graph_start),
-			    100.0 - (pbo * 100.0),
+			    (scale_y * 5) - (pbo * (scale_y * 5)),
 			    time_to_graph(sampletime[i] - sampletime[i - 1]),
-			    pbo * 100.0);
+			    pbo * (scale_y * 5));
 
 		/* labels around highest bo value */
 		if (i == max_here) {
 			svg("  <text class=\"sec\" x=\"%.03f\" y=\"%.03f\">%0.2fmb/sec</text>\n",
 			    time_to_graph(sampletime[i] - graph_start) + 5,
-			    (100.0 - (pbo * 100.0)),
+			    ((scale_y * 5) - (pbo * (scale_y * 5))),
 			    max / 1024.0 / (interval / 1000000000.0));
 		}
 	}
@@ -544,9 +542,9 @@ void svg_cpu_bar(void)
 		if (ptrt > 0.001) {
 			svg("<rect class=\"cpu\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 			    time_to_graph(sampletime[i - 1] - graph_start),
-			    100.0 - (ptrt * 100.0),
+			    (scale_y * 5) - (ptrt * (scale_y * 5)),
 			    time_to_graph(sampletime[i] - sampletime[i - 1]),
-			    ptrt * 100.0);
+			    ptrt * (scale_y * 5));
 		}
 	}
 }
@@ -586,9 +584,9 @@ void svg_wait_bar(void)
 		if (ptwt > 0.001) {
 			svg("<rect class=\"wait\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 			    time_to_graph(sampletime[i - 1] - graph_start),
-			    (100.0 - (ptwt * 100.0)),
+			    ((scale_y * 5) - (ptwt * (scale_y * 5))),
 			    time_to_graph(sampletime[i] - sampletime[i - 1]),
-			    ptwt * 100.0);
+			    ptwt * (scale_y * 5));
 		}
 	}
 }
@@ -818,12 +816,12 @@ void svg_ps_bars(void)
 			    idletime);
 			svg("<line class=\"idle\" x1=\"%.03f\" y1=\"%i\" x2=\"%.03f\" y2=\"%i\" />\n",
 			    time_to_graph(idletime),
-			    -20,
+			    -scale_y,
 			    time_to_graph(idletime),
-			    ps_to_graph(pcount) + 20);
+			    ps_to_graph(pcount) + scale_y);
 			svg("<text class=\"idle\" x=\"%.03f\" y=\"%i\">%.01fs</text>\n",
 			    time_to_graph(idletime) + 5,
-			    ps_to_graph(pcount) + 20,
+			    ps_to_graph(pcount) + scale_y,
 			    idletime);
 			break;
 		}
@@ -919,19 +917,19 @@ void svg_do(void)
 	svg_io_bi_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,550)\">\n");
+	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 6));
 	svg_io_bo_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,700)\">\n");
+	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 12));
 	svg_cpu_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,850)\">\n");
+	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 18));
 	svg_wait_bar();
 	svg("</g>\n\n");
 
-	svg("<g transform=\"translate(10,1000)\">\n");
+	svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 24));
 	svg_ps_bars();
 	svg("</g>\n\n");
 
@@ -944,7 +942,7 @@ void svg_do(void)
 	svg("</g>\n\n");
 
 	if (pss) {
-		svg("<g transform=\"translate(10,%d)\">\n", 1000 + 150 + (pcount * 20));
+		svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 30) + ps_to_graph(pcount));
 		svg_pss_graph();
 		svg("</g>\n\n");
 

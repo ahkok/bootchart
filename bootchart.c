@@ -34,18 +34,22 @@ struct ps_struct *ps[MAXPIDS]; /* ll */
 struct block_stat_struct blockstat[MAXSAMPLES];
 struct cpu_stat_struct cpustat[MAXCPUS];
 int pscount;
+int cpus;
+double interval;
+FILE *of;
+int overrun = 0;
+int exiting = 0;
+
+/* graph defaults */
 int relative;
 int filter = 1;
 int pss = 0;
 int samples;
-int cpus;
-double interval;
-FILE *of;
 int len = 500; /* we record len+1 (1 start sample) */
 int hz = 25;   /* 20 seconds log time */
-int overrun = 0;
+int scale_x = 100; /* 100px = 1sec */
+int scale_y = 20;  /* 16px = 1 process bar */
 
-int exiting = 0;
 
 struct rlimit rlim;
 
@@ -112,6 +116,10 @@ int main(int argc, char *argv[])
 				strncpy(output_path, val, PATH_MAX - 1);
 			if (!strcmp(key, "init"))
 				strncpy(init_path, val, PATH_MAX - 1);
+			if (!strcmp(key, "scale_x"))
+				scale_x = atoi(val);
+			if (!strcmp(key, "scale_y"))
+				scale_y = atoi(val);
 		}
 		fclose(f);
 	}
@@ -126,12 +134,14 @@ int main(int argc, char *argv[])
 			{"init", 1, NULL, 'i'},
 			{"filter", 0, NULL, 'F'},
 			{"help", 0, NULL, 'h'},
+			{"scale-x", 1, NULL, 'x'},
+			{"scale-y", 1, NULL, 'y'},
 			{0, 0, NULL, 0}
 		};
 
 		int index = 0, c;
 
-		c = getopt_long(argc, argv, "rpf:n:o:i:Fh", opts, &index);
+		c = getopt_long(argc, argv, "rpf:n:o:i:Fhx:y:", opts, &index);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -156,11 +166,19 @@ int main(int argc, char *argv[])
 		case 'p':
 			pss = 1;
 			break;
+		case 'x':
+			scale_x = atoi(optarg);
+			break;
+		case 'y':
+			scale_y = atoi(optarg);
+			break;
 		case 'h':
 			fprintf(stderr, "Usage: %s [OPTIONS]\n", argv[0]);
 			fprintf(stderr, " --rel,     -r            Record time relative to recording\n");
 			fprintf(stderr, " --freq,    -f N          Sample frequency [%d]\n", hz);
 			fprintf(stderr, " --samples, -n N          Stop sampling at [%d] samples\n", len);
+			fprintf(stderr, " --scale-x, -x N          Scale the graph horizontally [%d] \n", scale_x);
+			fprintf(stderr, " --scale-y, -y N          Scale the graph vertically [%d] \n", scale_y);
 			fprintf(stderr, " --pss,     -p            Enable PSS graph (CPU intensive)\n");
 			fprintf(stderr, " --output,  -o [PATH]     Path to output files [%s]\n", output_path);
 			fprintf(stderr, " --init,    -i [PATH]     Path to init executable [%s]\n", init_path);
