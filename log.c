@@ -324,14 +324,19 @@ schedstat_next:
 			rewind(ps[pid]->smaps);
 		}
 
-		while (fgets(buf, sizeof(buf) - 1, ps[pid]->smaps) != NULL) {
-			if (!strncmp("Pss:", buf, 4)) {
-				int p;
-				if (sscanf(buf, "%*s %d %*s", &p) != 1)
-					continue;
-				ps[pid]->sample[sample].pss += p;
-			}
+		while (1) {
+			/* skip one line, this contains the object mapped */
+			if (fgets(buf, sizeof(buf) -1, ps[pid]->smaps) == NULL)
+				break;
+			/* then there's a 28 char 14 line block */
+			if (fread(buf, 1, 28 * 14, ps[pid]->smaps) != 28 * 14)
+				break;
+
+			int p;
+			p = atoi(&buf[61]);
+			ps[pid]->sample[sample].pss += p;
 		}
+
 		if (ps[pid]->sample[sample].pss > ps[pid]->pss_max)
 			ps[pid]->pss_max = ps[pid]->sample[sample].pss;
 
