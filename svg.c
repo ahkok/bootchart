@@ -256,7 +256,7 @@ void svg_pss_graph(void)
 			ps_to_graph(i));
 		svg("  <text class=\"sec\" x=\"%.03f\" y=\"%d\">%dM</text>\n",
 		    time_to_graph(sampletime[samples-1] - graph_start) + 5,
-		    i, 1000 - (i / 2));
+		    i * 20, 1000 - (i * 10));
 	}
 	svg("\n");
 
