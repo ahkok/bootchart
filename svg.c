@@ -58,13 +58,13 @@ void svg_header(void)
 	float w;
 	int h;
 
-	/* min width is about 1600px */
+	/* min width is about 1600px due to the label */
 	w = 150 + 10 + time_to_graph(sampletime[samples-1] - graph_start);
 	w = ((w < 1600.0) ? 1600.0 : w);
 
 	/* height is variable based on pss */
 	h = (pss ? 2000 + (scale_y * 7) : 0)
-	     + 400 + (scale_y * 28) + ps_to_graph(pcount);
+	     + 400 + (scale_y * 30) + ps_to_graph(pcount);
 
 	svg("<?xml version=\"1.0\" standalone=\"no\"?>\n");
 	svg("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" ");
@@ -248,12 +248,12 @@ void svg_pss_graph(void)
 	/* vsize 1000 == 1000mb */
 	svg_graph_box(100);
 	/* draw some hlines for usable memory sizes */
-	for (i = 200; i < 2000; i += 200) {
+	for (i = 10; i < 100; i += 10) {
 		svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%d\" x2=\"%.03f\" y2=\"%d\"/>\n",
 			time_to_graph(.0),
-			i,
+			ps_to_graph(i),
 			time_to_graph(sampletime[samples-1] - graph_start),
-			i);
+			ps_to_graph(i));
 		svg("  <text class=\"sec\" x=\"%.03f\" y=\"%d\">%dM</text>\n",
 		    time_to_graph(sampletime[samples-1] - graph_start) + 5,
 		    i, 1000 - (i / 2));
@@ -942,7 +942,7 @@ void svg_do(void)
 	svg("</g>\n\n");
 
 	if (pss) {
-		svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 28) + ps_to_graph(pcount));
+		svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 30) + ps_to_graph(pcount));
 		svg_pss_graph();
 		svg("</g>\n\n");
 
