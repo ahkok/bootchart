@@ -26,6 +26,13 @@
 
 #include "bootchart.h"
 
+/*
+ * Alloc a static 4k buffer for stdio - primarily used to increase
+ * PSS buffering from the default 1k stdin buffer to reduce
+ * read() overhead.
+ */
+char smaps_buf[4096];
+
 
 double gettime_ns(void)
 {
@@ -318,6 +325,7 @@ schedstat_next:
 		if (!ps[pid]->smaps) {
 			sprintf(filename, "/proc/%d/smaps", pid);
 			ps[pid]->smaps = fopen(filename, "r");
+			setvbuf(ps[pid]->smaps, smaps_buf, _IOFBF, sizeof(smaps_buf));
 			if (!ps[pid]->smaps)
 				continue;
 		} else {
