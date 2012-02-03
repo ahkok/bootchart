@@ -24,6 +24,7 @@
 
 #define time_to_graph(t) ((t) * scale_x)
 #define ps_to_graph(n) ((n) * scale_y)
+#define kb_to_graph(m) ((m) * scale_y * 0.0001)
 #define to_color(n) (192.0 - ((n) * 192.0))
 
 #define max(x, y) (((x) > (y)) ? (x) : (y))
@@ -63,7 +64,7 @@ void svg_header(void)
 	w = ((w < 1600.0) ? 1600.0 : w);
 
 	/* height is variable based on pss */
-	h = (pss ? 2000 + (scale_y * 7) : 0)
+	h = (pss ? (100 * scale_y) + (scale_y * 7) : 0)
 	     + 400 + (scale_y * 30) + ps_to_graph(pcount);
 
 	svg("<?xml version=\"1.0\" standalone=\"no\"?>\n");
@@ -248,15 +249,15 @@ void svg_pss_graph(void)
 	/* vsize 1000 == 1000mb */
 	svg_graph_box(100);
 	/* draw some hlines for usable memory sizes */
-	for (i = 10; i < 100; i += 10) {
-		svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%d\" x2=\"%.03f\" y2=\"%d\"/>\n",
+	for (i = 100000; i < 1000000; i += 100000) {
+		svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%.0f\" x2=\"%.03f\" y2=\"%.0f\"/>\n",
 			time_to_graph(.0),
-			ps_to_graph(i),
+			kb_to_graph(i),
 			time_to_graph(sampletime[samples-1] - graph_start),
-			ps_to_graph(i));
-		svg("  <text class=\"sec\" x=\"%.03f\" y=\"%d\">%dM</text>\n",
+			kb_to_graph(i));
+		svg("  <text class=\"sec\" x=\"%.03f\" y=\"%.0f\">%dM</text>\n",
 		    time_to_graph(sampletime[samples-1] - graph_start) + 5,
-		    i * 20, 1000 - (i * 10));
+		    kb_to_graph(i), (1000000 - i) / 1000);
 	}
 	svg("\n");
 
@@ -272,15 +273,15 @@ void svg_pss_graph(void)
 		for (p = 0; p < MAXPIDS ; p++) {
 			if (!ps[p])
 				continue;
-			if (ps[p]->sample[i].pss <= 2000)
+			if (ps[p]->sample[i].pss <= (100 * scale_y))
 				top += ps[p]->sample[i].pss;
 		};
 		svg("    <rect class=\"clrw\" style=\"fill: %s\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 		    "rgb(64,64,64)",
 		    time_to_graph(sampletime[i - 1] - graph_start),
-		    2000.0 - (top / 500.0),
+		    kb_to_graph(1000000.0 - top),
 		    time_to_graph(sampletime[i] - sampletime[i - 1]),
-		    (top - bottom) / 500.0);
+		    kb_to_graph(top - bottom));
 
 		bottom = top;
 	
@@ -289,14 +290,14 @@ void svg_pss_graph(void)
 			if (!ps[p])
 				continue;
 			/* don't draw anything smaller than 2mb */
-			if (ps[p]->sample[i].pss > 2000) {
+			if (ps[p]->sample[i].pss > (100 * scale_y)) {
 				top = bottom + ps[p]->sample[i].pss;
 				svg("    <rect class=\"clrw\" style=\"fill: %s\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 				    colorwheel[p % 12],
 				    time_to_graph(sampletime[i - 1] - graph_start),
-				    2000.0 - (top / 500.0),
+				    kb_to_graph(1000000.0 - top),
 				    time_to_graph(sampletime[i] - sampletime[i - 1]),
-				    (top - bottom) / 500.0);
+				    kb_to_graph(top - bottom));
 				bottom = top;
 			}
 		}
@@ -314,7 +315,7 @@ void svg_pss_graph(void)
 		for (p = 0; p < MAXPIDS ; p++) {
 			if (!ps[p])
 				continue;
-			if (ps[p]->sample[i].pss <= 2000)
+			if (ps[p]->sample[i].pss <= (100 * scale_y))
 				top += ps[p]->sample[i].pss;
 		};
 
@@ -325,13 +326,13 @@ void svg_pss_graph(void)
 			if (!ps[p])
 				continue;
 			/* don't draw anything smaller than 2mb */
-			if (ps[p]->sample[i].pss > 2000) {
+			if (ps[p]->sample[i].pss > (100 * scale_y)) {
 				top = bottom + ps[p]->sample[i].pss;
 				/* draw a label with the process / PID */
-				if ((i == 1) || (ps[p]->sample[i - 1].pss <= 2000))
+				if ((i == 1) || (ps[p]->sample[i - 1].pss <= (100 * scale_y)))
 					svg("  <text x=\"%.03f\" y=\"%.03f\">%s [%i]</text>\n",
 					    time_to_graph(sampletime[i] - graph_start),
-					    2005.0 - (bottom / 500.0) - ((top - bottom) / 2) / 500.0,
+					    kb_to_graph(1000000.0 - bottom - ((top -  bottom) / 2)),
 					    ps[p]->name,
 					    ps[p]->pid);
 				bottom = top;
