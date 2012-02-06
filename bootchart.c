@@ -50,6 +50,8 @@ int hz = 25;   /* 20 seconds log time */
 int scale_x = 100; /* 100px = 1sec */
 int scale_y = 20;  /* 16px = 1 process bar */
 
+char init_path[PATH_MAX] = "/sbin/init";
+char output_path[PATH_MAX] = "/var/log";
 
 struct rlimit rlim;
 
@@ -64,8 +66,6 @@ void signal_handler(int sig)
 int main(int argc, char *argv[])
 {
 	struct sigaction sig;
-	char init_path[PATH_MAX] = "/sbin/init";
-	char output_path[PATH_MAX] = "/var/log";
 	char output_file[PATH_MAX];
 	char datestr[200];
 	time_t t;

@@ -16,7 +16,8 @@ install: bootchartd
 OBJS := log.o svg.o bootchart.o
 
 CFLAGS += -Wall -W -Os -g -fstack-protector -D_FORTIFY_SOURCE=2 -Wformat -fno-common \
-	 -Wimplicit-function-declaration  -Wimplicit-int -fstack-protector
+	 -Wimplicit-function-declaration  -Wimplicit-int -fstack-protector \
+	 -DBOOTCHARTVERSION=\"v$(VERSION)\"
 
 LDADD  += -lrt
 

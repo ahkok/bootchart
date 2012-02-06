@@ -99,6 +99,9 @@ extern int scale_y;
 extern int overrun;
 extern double interval;
 
+extern char output_path[PATH_MAX];
+extern char init_path[PATH_MAX];
+
 extern FILE *of;
 
 extern double gettime_ns(void);
