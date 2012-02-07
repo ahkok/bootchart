@@ -262,7 +262,7 @@ void svg_pss_graph(void)
 	svg_graph_box(100);
 	/* draw some hlines for usable memory sizes */
 	for (i = 100000; i < 1000000; i += 100000) {
-		svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%.0f\" x2=\"%.03f\" y2=\"%.0f\"/>\n",
+		svg("  <line class=\"sec01\" x1=\"%.03f\" y1=\"%.0f\" x2=\"%.03f\" y2=\"%.0f\"/>\n",
 			time_to_graph(.0),
 			kb_to_graph(i),
 			time_to_graph(sampletime[samples-1] - graph_start),
