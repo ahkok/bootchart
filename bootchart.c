@@ -38,7 +38,7 @@ int cpus;
 double interval;
 FILE *of;
 int overrun = 0;
-int exiting = 0;
+static int exiting = 0;
 
 /* graph defaults */
 int relative;
@@ -53,9 +53,9 @@ int scale_y = 20;  /* 16px = 1 process bar */
 char init_path[PATH_MAX] = "/sbin/init";
 char output_path[PATH_MAX] = "/var/log";
 
-struct rlimit rlim;
+static struct rlimit rlim;
 
-void signal_handler(int sig)
+static void signal_handler(int sig)
 {
 	if (sig++)
 		sig--;
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 			{"help", 0, NULL, 'h'},
 			{"scale-x", 1, NULL, 'x'},
 			{"scale-y", 1, NULL, 'y'},
-			{0, 0, NULL, 0}
+			{NULL, 0, NULL, 0}
 		};
 
 		int index = 0, c;

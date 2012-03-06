@@ -30,11 +30,11 @@
 #define max(x, y) (((x) > (y)) ? (x) : (y))
 #define min(x, y) (((x) < (y)) ? (x) : (y))
 
-char str[8092];
+static char str[8092];
 
 #define svg(a...) do { sprintf(str, ## a); fputs(str, of); fflush(of); } while (0)
 
-char *colorwheel[12] = {
+static char *colorwheel[12] = {
 	"rgb(255,32,32)",  // red
 	"rgb(32,192,192)", // cyan
 	"rgb(255,128,32)", // orange
@@ -49,9 +49,9 @@ char *colorwheel[12] = {
 	"rgb(32,192,32)"   // yellow-green
 };
 
-double idletime = -1.0;
-int pfiltered = 0;
-int pcount = 0;
+static double idletime = -1.0;
+static int pfiltered = 0;
+static int pcount = 0;
 
 
 void svg_header(void)
