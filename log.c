@@ -191,7 +191,7 @@ schedstat_next:
 
 		pid = atoi(ent->d_name);
 
-		if (pid > MAXPIDS)
+		if (pid >= MAXPIDS)
 			continue;
 
 		if (!ps[pid]) {
