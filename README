@@ -70,9 +70,13 @@ Many thanks to those who contributed ideas and code:
  - Anders Norgaard - PyBootchartgui
  - Michael Meeks - bootchart2
  - Scott James Remnant - Ubuntu C-based logger
+ - Arjan van der Ven - for the idea to merge bootgraph.pl functionality
 
 --
 
 For bugs, please contact the author or current maintainer:
 Auke Kok <auke-jan.h.kok@intel.com>
 
+--
+
+Download bootchart releases here: http://foo-projects.org/~sofar/bootchart/
