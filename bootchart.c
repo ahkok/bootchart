@@ -41,6 +41,7 @@ int overrun = 0;
 static int exiting = 0;
 
 /* graph defaults */
+int initcall = 1;
 int relative;
 int filter = 1;
 int pss = 0;

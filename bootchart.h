@@ -90,6 +90,7 @@ extern int pscount;
 extern int relative;
 extern int filter;
 extern int pss;
+extern int initcall;
 extern int samples;
 extern int cpus;
 extern int len;
