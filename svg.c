@@ -724,8 +724,13 @@ void svg_do_initcall(int count_only)
 
 		c = sscanf(l, "[%lf] initcall %s %*s %d %*s %d %*s",
 			   &t, func, &ret, &usecs);
-		if (c != 4)
-			continue;
+		if (c != 4) {
+			/* also parse initcalls done by module loading */
+			c = sscanf(l, "[%lf] initcall %s %*s %*s %d %*s %d %*s",
+				   &t, func, &ret, &usecs);
+			if (c != 4)
+				continue;
+		}
 
 		/* chop the +0xXX/0xXX stuff */
 		while(func[z] != '+')
