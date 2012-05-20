@@ -12,7 +12,7 @@
  */
 
 
-#define VERSION "0.1"
+#include "config.h"
 
 #define MAXCPUS         8
 #define MAXPIDS     65535
