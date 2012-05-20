@@ -2,3 +2,13 @@ bootchart-*.tar.gz
 bootchartd
 *.o
 *~
+Makefile.in
+aclocal.m4
+autom4te.cache/
+autoscan.log
+bootchart-*.svg
+config.h.in
+configure
+depcomp
+install-sh
+missing
