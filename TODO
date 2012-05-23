@@ -1,0 +1,11 @@
+
+Current TODO list:
+
+* Remove hard-coded arrays over [MAXSAMPLES] and allocate arrays
+dynamically for "samples" at run time.
+* Parse /etc/os-release instead of all the rest (patch exists from
+Koen Kooi)
+* Write out idle time to the console?
+* Revamp the idle time algorithm or delete it - it fails badly on
+most things that are more powerful than an old core2.
+
