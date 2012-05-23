@@ -31,7 +31,8 @@
  * PSS buffering from the default 1k stdin buffer to reduce
  * read() overhead.
  */
-char smaps_buf[4096];
+static char smaps_buf[4096];
+DIR *proc;
 
 
 double gettime_ns(void)
@@ -88,7 +89,6 @@ void log_sample(int sample)
 {
 	static int vmstat;
 	static int schedstat;
-	static DIR *proc;
 	FILE *stat;
 	char buf[4095];
 	char key[256];
@@ -185,6 +185,7 @@ schedstat_next:
 	while ((ent = readdir(proc)) != NULL) {
 		char filename[PATH_MAX];
 		int pid;
+		struct ps_struct *ps;
 
 		if ((ent->d_name[0] < '0') || (ent->d_name[0] > '9'))
 			continue;
@@ -194,41 +195,50 @@ schedstat_next:
 		if (pid >= MAXPIDS)
 			continue;
 
-		if (!ps[pid]) {
+		ps = ps_first;
+		while (ps->next_ps) {
+			ps = ps->next_ps;
+			if (ps->pid == pid)
+				break;
+		}
+
+		/* end of our LL? then append a new record */
+		if (ps->pid != pid) {
 			char t[32];
 			struct ps_struct *parent;
 
-			pscount++;
-
-			/* alloc & insert */
-			ps[pid] = malloc(sizeof(struct ps_struct));
-			if (!ps[pid]) {
-				perror("malloc ps[pid]");
+			ps->next_ps = malloc(sizeof(struct ps_struct));
+			if (!ps->next_ps) {
+				perror("malloc(ps_struct)");
 				exit (EXIT_FAILURE);
 			}
-			memset(ps[pid], 0, sizeof(struct ps_struct));
+			memset(ps->next_ps, 0, sizeof(struct ps_struct));
+			ps = ps->next_ps;
+			ps->pid = pid;
+
+			pscount++;
 
 			/* mark our first sample */
-			ps[pid]->first = sample;
+			ps->first = sample;
 
 			/* get name, start time */
-			if (!ps[pid]->sched) {
+			if (!ps->sched) {
 				sprintf(filename, "/proc/%d/sched", pid);
-				ps[pid]->sched = open(filename, O_RDONLY);
-				if (ps[pid]->sched == -1)
+				ps->sched = open(filename, O_RDONLY);
+				if (ps->sched == -1)
 					continue;
 			}
 
-			s = pread(ps[pid]->sched, buf, sizeof(buf) - 1, 0);
+			s = pread(ps->sched, buf, sizeof(buf) - 1, 0);
 			if (s <= 0) {
-				close(ps[pid]->sched);
+				close(ps->sched);
 				continue;
 			}
 
 			if (!sscanf(buf, "%s %*s %*s", key))
 				continue;
 
-			strncpy(ps[pid]->name, key, 16);
+			strncpy(ps->name, key, 16);
 			/* discard line 2 */
 			m = bufgetline(buf);
 			if (!m)
@@ -241,7 +251,7 @@ schedstat_next:
 			if (!sscanf(m, "%*s %*s %s", t))
 				continue;
 
-			ps[pid]->starttime = strtod(t, NULL) / 1000.0;
+			ps->starttime = strtod(t, NULL) / 1000.0;
 
 			/* ppid */
 			sprintf(filename, "/proc/%d/stat", pid);
@@ -253,7 +263,7 @@ schedstat_next:
 				continue;
 			}
 			fclose(stat);
-			ps[pid]->ppid = p;
+			ps->ppid = p;
 
 			/*
 			 * setup child pointers
@@ -264,116 +274,123 @@ schedstat_next:
 			if (pid == 1)
 				continue; /* nothing to do for init atm */
 
-			parent = ps[ps[pid]->ppid];
+			/* kthreadd has ppid=0, which breaks our tree ordering */
+			if (ps->ppid == 0)
+				ps->ppid = 1;
 
-			if (!parent) {
-				/* fix this asap */
-				ps[pid]->ppid = 1;
-				parent = ps[1];
+			parent = ps_first;
+			while ((parent->next_ps && parent->pid != ps->ppid))
+				parent = parent->next_ps;
+
+			if ((!parent) || (parent->pid != ps->ppid)) {
+				/* orphan */
+				ps->ppid = 1;
+				parent = ps_first->next_ps;
 			}
+
+			ps->parent = parent;
 
 			if (!parent->children) {
 				/* it's the first child */
-				parent->children = ps[pid];
+				parent->children = ps;
 			} else {
 				/* walk all children and append */
 				struct ps_struct *children;
 				children = parent->children;
 				while (children->next)
 					children = children->next;
-				children->next = ps[pid];
+				children->next = ps;
 			}
-
-			ps[pid]->pid = pid;
 		}
+
+		/* else -> found pid, append data in ps */
 
 		/* below here is all continuous logging parts - we get here on every
 		 * iteration */
 
 		/* rt, wt */
-		if (!ps[pid]->schedstat) {
+		if (!ps->schedstat) {
 			sprintf(filename, "/proc/%d/schedstat", pid);
-			ps[pid]->schedstat = open(filename, O_RDONLY);
-			if (ps[pid]->schedstat == -1)
+			ps->schedstat = open(filename, O_RDONLY);
+			if (ps->schedstat == -1)
 				continue;
 		}
 
-		if (pread(ps[pid]->schedstat, buf, sizeof(buf) - 1, 0) <= 0) {
+		if (pread(ps->schedstat, buf, sizeof(buf) - 1, 0) <= 0) {
 			/* clean up our file descriptors - assume that the process exited */
-			close(ps[pid]->schedstat);
-			if (ps[pid]->sched)
-				close(ps[pid]->sched);
-			//if (ps[pid]->smaps)
-			//	fclose(ps[pid]->smaps);
+			close(ps->schedstat);
+			if (ps->sched)
+				close(ps->sched);
+			//if (ps->smaps)
+			//	fclose(ps->smaps);
 			continue;
 		}
 		if (!sscanf(buf, "%s %s %*s", rt, wt))
 			continue;
 
-		ps[pid]->pid = pid;
-		ps[pid]->last = sample;
-		ps[pid]->sample[sample].runtime = atoll(rt);
-		ps[pid]->sample[sample].waittime = atoll(wt);
+		ps->last = sample;
+		ps->sample[sample].runtime = atoll(rt);
+		ps->sample[sample].waittime = atoll(wt);
 
-		ps[pid]->total = (ps[pid]->sample[ps[pid]->last].runtime
-				 - ps[pid]->sample[ps[pid]->first].runtime)
+		ps->total = (ps->sample[ps->last].runtime
+				 - ps->sample[ps->first].runtime)
 				 / 1000000000.0;
 
 		if (!pss)
 			goto catch_rename;
 		/* Pss */
-		if (!ps[pid]->smaps) {
+		if (!ps->smaps) {
 			sprintf(filename, "/proc/%d/smaps", pid);
-			ps[pid]->smaps = fopen(filename, "r");
-			setvbuf(ps[pid]->smaps, smaps_buf, _IOFBF, sizeof(smaps_buf));
-			if (!ps[pid]->smaps)
+			ps->smaps = fopen(filename, "r");
+			setvbuf(ps->smaps, smaps_buf, _IOFBF, sizeof(smaps_buf));
+			if (!ps->smaps)
 				continue;
 		} else {
-			rewind(ps[pid]->smaps);
+			rewind(ps->smaps);
 		}
 
 		while (1) {
 			/* skip one line, this contains the object mapped */
-			if (fgets(buf, sizeof(buf) -1, ps[pid]->smaps) == NULL)
+			if (fgets(buf, sizeof(buf) -1, ps->smaps) == NULL)
 				break;
 			/* then there's a 28 char 14 line block */
-			if (fread(buf, 1, 28 * 14, ps[pid]->smaps) != 28 * 14)
+			if (fread(buf, 1, 28 * 14, ps->smaps) != 28 * 14)
 				break;
 
 			int p;
 			p = atoi(&buf[61]);
-			ps[pid]->sample[sample].pss += p;
+			ps->sample[sample].pss += p;
 		}
 
-		if (ps[pid]->sample[sample].pss > ps[pid]->pss_max)
-			ps[pid]->pss_max = ps[pid]->sample[sample].pss;
+		if (ps->sample[sample].pss > ps->pss_max)
+			ps->pss_max = ps->sample[sample].pss;
 
 catch_rename:
 		/* catch process rename, try to randomize time */
-		if (((samples - ps[pid]->first) + pid) % (hz / 4) == 0) {
+		if (((samples - ps->first) + pid) % (hz / 4) == 0) {
 
 			/* re-fetch name */
 			/* get name, start time */
-			if (!ps[pid]->sched) {
+			if (!ps->sched) {
 				sprintf(filename, "/proc/%d/sched", pid);
-				ps[pid]->sched = open(filename, O_RDONLY);
-				if (ps[pid]->sched == -1)
+				ps->sched = open(filename, O_RDONLY);
+				if (ps->sched == -1)
 					continue;
 			}
-			if (pread(ps[pid]->sched, buf, sizeof(buf) - 1, 0) <= 0) {
+			if (pread(ps->sched, buf, sizeof(buf) - 1, 0) <= 0) {
 				/* clean up file descriptors */
-				close(ps[pid]->sched);
-				if (ps[pid]->schedstat)
-					close(ps[pid]->schedstat);
-				//if (ps[pid]->smaps)
-				//	fclose(ps[pid]->smaps);
+				close(ps->sched);
+				if (ps->schedstat)
+					close(ps->schedstat);
+				//if (ps->smaps)
+				//	fclose(ps->smaps);
 				continue;
 			}
 
 			if (!sscanf(buf, "%s %*s %*s", key))
 				continue;
 
-			strncpy(ps[pid]->name, key, 16);
+			strncpy(ps->name, key, 16);
 		}
 	}
 }

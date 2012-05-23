@@ -11,6 +11,7 @@
  * of the License.
  */
 
+#include <dirent.h>
 
 #include "config.h"
 
@@ -46,8 +47,10 @@ struct ps_sched_struct {
 
 /* process info */
 struct ps_struct {
-	struct ps_struct *children;
-	struct ps_struct *next;
+	struct ps_struct *next_ps;    /* SLL pointer */
+	struct ps_struct *parent;     /* ppid ref */
+	struct ps_struct *children;   /* children */
+	struct ps_struct *next;       /* siblings */
 
 	/* must match - otherwise it's a new process with same PID */
 	char name[16];
@@ -83,7 +86,7 @@ struct ps_struct {
 extern double graph_start;
 extern double log_start;
 extern double sampletime[];
-extern struct ps_struct *ps[]; /* ll */
+extern struct ps_struct *ps_first;
 extern struct block_stat_struct blockstat[];
 extern struct cpu_stat_struct cpustat[];
 extern int pscount;
@@ -104,6 +107,7 @@ extern char output_path[PATH_MAX];
 extern char init_path[PATH_MAX];
 
 extern FILE *of;
+extern DIR *proc;
 
 extern double gettime_ns(void);
 extern void log_uptime(void);

@@ -30,7 +30,7 @@
 double graph_start;
 double log_start;
 double sampletime[MAXSAMPLES];
-struct ps_struct *ps[MAXPIDS]; /* ll */
+struct ps_struct *ps_first;
 struct block_stat_struct blockstat[MAXSAMPLES];
 struct cpu_stat_struct cpustat[MAXCPUS];
 int pscount;
@@ -67,11 +67,11 @@ static void signal_handler(int sig)
 int main(int argc, char *argv[])
 {
 	struct sigaction sig;
+	struct ps_struct *ps;
 	char output_file[PATH_MAX];
 	char datestr[200];
 	time_t t;
 	FILE *f;
-	int i;
 
 	memset(&t, 0, sizeof(time_t));
 
@@ -212,6 +212,14 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* start with empty ps LL */
+	ps_first = malloc(sizeof(struct ps_struct));
+	if (!ps_first) {
+		perror("malloc(ps_struct)");
+		exit(EXIT_FAILURE);
+	}
+	memset(ps_first, 0, sizeof(struct ps_struct));
+
 	/* handle TERM/INT nicely */
 	memset(&sig, 0, sizeof(struct sigaction));
 	sig.sa_handler = signal_handler;
@@ -270,18 +278,17 @@ int main(int argc, char *argv[])
 	}
 
 	/* do some cleanup, close fd's */
-	for ( i = 0; i < MAXPIDS ; i++) {
-		if (!ps[i])
-			continue;
-	/*
-		if (ps[i]->schedstat)
-			close(ps[i]->schedstat);
-		if (ps[i]->sched)
-			close(ps[i]->sched);
-		if (ps[i]->smaps)
-			fclose(ps[i]->smaps);
-	 */
+	ps = ps_first;
+	while (ps->next_ps) {
+		ps = ps->next_ps;
+		if (ps->schedstat)
+			close(ps->schedstat);
+		if (ps->sched)
+			close(ps->sched);
+		if (ps->smaps)
+			fclose(ps->smaps);
 	}
+	closedir(proc);
 
 	t = time(NULL);
 	strftime(datestr, sizeof(datestr), "%Y%m%d-%H%M", localtime(&t));
@@ -297,6 +304,15 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr, "bootchartd: Wrote %s\n", output_file);
 	fclose(of);
+
+	/* nitpic cleanups */
+	ps = ps_first;
+	while (ps->next_ps) {
+		struct ps_struct *old = ps;
+		ps = ps->next_ps;
+		free(old);
+	}
+	free(ps);
 
 	/* don't complain when overrun once, happens most commonly on 1st sample */
 	if (overrun > 1)

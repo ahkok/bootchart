@@ -58,7 +58,7 @@ static int psize = 0;
 static int ksize = 0;
 
 
-void svg_header(void)
+static void svg_header(void)
 {
 	float w;
 	int h;
@@ -125,7 +125,7 @@ void svg_header(void)
 }
 
 
-void svg_title(void)
+static void svg_title(void)
 {
 	char cmdline[256] = "";
 	char filename[PATH_MAX];
@@ -215,7 +215,7 @@ void svg_title(void)
 }
 
 
-void svg_graph_box(int height)
+static void svg_graph_box(int height)
 {
 	double d = 0.0;
 	int i = 0;
@@ -256,8 +256,9 @@ void svg_graph_box(int height)
 }
 
 
-void svg_pss_graph(void)
+static void svg_pss_graph(void)
 {
+	struct ps_struct *ps;
 	int i;
 	int p;
 
@@ -289,11 +290,13 @@ void svg_pss_graph(void)
 		top = 0;
 
 		/* put all the small pss blocks into the bottom */
-		for (p = 0; p < MAXPIDS ; p++) {
-			if (!ps[p])
+		ps = ps_first;
+		while (ps->next_ps) {
+			ps = ps->next_ps;
+			if (!ps)
 				continue;
-			if (ps[p]->sample[i].pss <= (100 * scale_y))
-				top += ps[p]->sample[i].pss;
+			if (ps->sample[i].pss <= (100 * scale_y))
+				top += ps->sample[i].pss;
 		};
 		svg("    <rect class=\"clrw\" style=\"fill: %s\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 		    "rgb(64,64,64)",
@@ -304,15 +307,17 @@ void svg_pss_graph(void)
 
 		bottom = top;
 	
-		/* now plot the ones that are of significant size */	
-		for (p = 0; p < MAXPIDS ; p++) {
-			if (!ps[p])
+		/* now plot the ones that are of significant size */
+		ps = ps_first;
+		while (ps->next_ps) {
+			ps = ps->next_ps;
+			if (!ps)
 				continue;
 			/* don't draw anything smaller than 2mb */
-			if (ps[p]->sample[i].pss > (100 * scale_y)) {
-				top = bottom + ps[p]->sample[i].pss;
+			if (ps->sample[i].pss > (100 * scale_y)) {
+				top = bottom + ps->sample[i].pss;
 				svg("    <rect class=\"clrw\" style=\"fill: %s\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
-				    colorwheel[p % 12],
+				    colorwheel[ps->pid % 12],
 				    time_to_graph(sampletime[i - 1] - graph_start),
 				    kb_to_graph(1000000.0 - top),
 				    time_to_graph(sampletime[i] - sampletime[i - 1]),
@@ -331,29 +336,33 @@ void svg_pss_graph(void)
 		top = 0;
 
 		/* put all the small pss blocks into the bottom */
-		for (p = 0; p < MAXPIDS ; p++) {
-			if (!ps[p])
+		ps = ps_first;
+		while (ps->next_ps) {
+			ps = ps->next_ps;
+			if (!ps)
 				continue;
-			if (ps[p]->sample[i].pss <= (100 * scale_y))
-				top += ps[p]->sample[i].pss;
+			if (ps->sample[i].pss <= (100 * scale_y))
+				top += ps->sample[i].pss;
 		};
 
 		bottom = top;
 	
 		/* now plot the ones that are of significant size */
-		for (p = 0; p < MAXPIDS ; p++) {
-			if (!ps[p])
+		ps = ps_first;
+		while (ps->next_ps) {
+			ps = ps->next_ps;
+			if (!ps)
 				continue;
 			/* don't draw anything smaller than 2mb */
-			if (ps[p]->sample[i].pss > (100 * scale_y)) {
-				top = bottom + ps[p]->sample[i].pss;
+			if (ps->sample[i].pss > (100 * scale_y)) {
+				top = bottom + ps->sample[i].pss;
 				/* draw a label with the process / PID */
-				if ((i == 1) || (ps[p]->sample[i - 1].pss <= (100 * scale_y)))
+				if ((i == 1) || (ps->sample[i - 1].pss <= (100 * scale_y)))
 					svg("  <text x=\"%.03f\" y=\"%.03f\">%s [%i]</text>\n",
 					    time_to_graph(sampletime[i] - graph_start),
 					    kb_to_graph(1000000.0 - bottom - ((top -  bottom) / 2)),
-					    ps[p]->name,
-					    ps[p]->pid);
+					    ps->name,
+					    ps->pid);
 				bottom = top;
 			}
 		}
@@ -361,19 +370,21 @@ void svg_pss_graph(void)
 
 	/* debug output - full data dump */
 	svg("\n\n<!-- PSS map - csv format -->\n");
-	for (p = 0; p < MAXPIDS ; p++) {
-		if (!ps[p])
+	ps = ps_first;
+	while (ps->next_ps) {
+		ps = ps->next_ps;
+		if (!ps)
 			continue;
-		svg("<!-- %s [%d] pss=", ps[p]->name, p);
+		svg("<!-- %s [%d] pss=", ps->name, ps->pid);
 		for (i = 0; i < samples ; i++) {
-			svg("%d," , ps[p]->sample[i].pss);
+			svg("%d," , ps->sample[i].pss);
 		}
 		svg(" -->\n");
 	}
 
 }
 
-void svg_io_bi_bar(void)
+static void svg_io_bi_bar(void)
 {
 	double max = 0.0;
 	double range;
@@ -450,7 +461,7 @@ void svg_io_bi_bar(void)
 	}
 }
 
-void svg_io_bo_bar(void)
+static void svg_io_bo_bar(void)
 {
 	double max = 0.0;
 	double range;
@@ -528,7 +539,7 @@ void svg_io_bo_bar(void)
 }
 
 
-void svg_cpu_bar(void)
+static void svg_cpu_bar(void)
 {
 	int i;
 
@@ -569,7 +580,7 @@ void svg_cpu_bar(void)
 	}
 }
 
-void svg_wait_bar(void)
+static void svg_wait_bar(void)
 {
 	int i;
 
@@ -612,74 +623,59 @@ void svg_wait_bar(void)
 }
 
 
-int get_next_ps(int start)
+static struct ps_struct *get_next_ps(struct ps_struct *ps)
 {
 	/*
 	 * walk the list of processes and return the next one to be
 	 * painted
 	 */
-
-	int here = start;
-	struct ps_struct *children;
-	struct ps_struct *siblings;
-
-	/* start with init [1] */
-	if (here == 0) {
-		here = 1;
-		return here;
-	}
-
-	children = ps[here]->children;
+	if (ps == ps_first)
+		return ps->next_ps;
 
 	/* go deep */
-	if (children) {
-		here = ps[here]->children->pid;
-		return here;
-	}
+	if (ps->children)
+		return ps->children;
 
 	/* find siblings */
-	siblings = ps[here]->next;
-	if (siblings) {
-		here = ps[here]->next->pid;
-		return here;
-	}
+	if (ps->next)
+		return ps->next;
 
 	/* go back for parent siblings */
-	while (ps[ps[here]->ppid]) {
-		here = ps[ps[here]->ppid]->pid;
-		/* go to sibling of parent */
-		if (ps[here]->next) {
-			here = ps[here]->next->pid;
-			return here;
-		}
+	while (1) {
+		if (ps->parent)
+			if (ps->parent->next)
+				return ps->parent->next;
+		ps = ps->parent;
+		if (!ps)
+			return ps;
 	}
 
-	return 0;
+	return NULL;
 }
 
 
-int ps_filter(int pid)
+static int ps_filter(struct ps_struct *ps)
 {
 	if (!filter)
 		return 0;
 
 	/* can't draw data when there is only 1 sample (need start + stop) */
-	if (ps[pid]->first == ps[pid]->last)
+	if (ps->first == ps->last)
 		return -1;
 
 	/* don't filter kthreadd */
-	if (pid == 2)
+	if (ps->pid == 2)
 		return 0;
 
 	/* drop stuff that doesn't use any real CPU time */
-	if (ps[pid]->total <= 0.001)
+	if (ps->total <= 0.001)
 		return -1;
 
 	return 0;
 }
 
 
-void svg_do_initcall(int count_only)
+static void svg_do_initcall(int count_only)
 {
 	FILE *f;
 	double t;
@@ -771,8 +767,9 @@ void svg_do_initcall(int count_only)
 }
 
 
-void svg_ps_bars(void)
+static void svg_ps_bars(void)
 {
+	struct ps_struct *ps;
 	int i = 0;
 	int j = 0;
 	int wt;
@@ -786,55 +783,55 @@ void svg_ps_bars(void)
 	svg_graph_box(pcount);
 
 	/* pass 2 - ps boxes */
-	i = 0;
-	while ((i = get_next_ps(i))) {
+	ps = ps_first;
+	while ((ps = get_next_ps(ps))) {
 		double starttime;
 		int t;
 
-		if (!ps[i])
+		if (!ps)
 			continue;
 
 		/* leave some trace of what we actually filtered etc. */
-		svg("<!-- %s [%i] ppid=%i runtime=%.03fs -->\n", ps[i]->name, i,
-		    ps[i]->ppid, ps[i]->total);
+		svg("<!-- %s [%i] ppid=%i runtime=%.03fs -->\n", ps->name, ps->pid,
+		    ps->ppid, ps->total);
 
 		/* it would be nice if we could use exec_start from /proc/pid/sched,
 		 * but it's unreliable and gives bogus numbers */
-		starttime = sampletime[ps[i]->first];
+		starttime = sampletime[ps->first];
 
-		if (!ps_filter(i)) {
+		if (!ps_filter(ps)) {
 			/* remember where _to_ our children need to draw a line */
-			ps[i]->pos_x = time_to_graph(starttime - graph_start);
-			ps[i]->pos_y = ps_to_graph(j+1); /* bottom left corner */
+			ps->pos_x = time_to_graph(starttime - graph_start);
+			ps->pos_y = ps_to_graph(j+1); /* bottom left corner */
 		} else {
 			/* hook children to our parent coords instead */
-			ps[i]->pos_x = ps[ps[i]->ppid]->pos_x;
-			ps[i]->pos_y = ps[ps[i]->ppid]->pos_y;
+			ps->pos_x = ps->parent->pos_x;
+			ps->pos_y = ps->parent->pos_y;
 
 			/* if this is the last child, we might still need to draw a connecting line */
-			if ((!ps[i]->next) && (ps[ps[i]->ppid]))
+			if ((!ps->next) && (ps->parent))
 				svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%i\" x2=\"%.03f\" y2=\"%.03f\" />\n",
-				    ps[ps[i]->ppid]->pos_x,
+				    ps->parent->pos_x,
 				    ps_to_graph(j-1) + 10, /* whee, use the last value here */
-				    ps[ps[i]->ppid]->pos_x,
-				    ps[ps[i]->ppid]->pos_y);
+				    ps->parent->pos_x,
+				    ps->parent->pos_y);
 			continue;
 		}
 
 		svg("  <rect class=\"ps\" x=\"%.03f\" y=\"%i\" width=\"%.03f\" height=\"%i\" />\n",
 		    time_to_graph(starttime - graph_start),
 		    ps_to_graph(j),
-		    time_to_graph(sampletime[ps[i]->last] - starttime),
+		    time_to_graph(sampletime[ps->last] - starttime),
 		    ps_to_graph(1));
 
 		/* paint cpu load over these */
-		for (t = ps[i]->first + 1; t < ps[i]->last; t++) {
+		for (t = ps->first + 1; t < ps->last; t++) {
 			double rt, prt;
 			double wt, wrt;
 
 			/* calculate over interval */
-			rt = ps[i]->sample[t].runtime - ps[i]->sample[t-1].runtime;
-			wt = ps[i]->sample[t].waittime - ps[i]->sample[t-1].waittime;
+			rt = ps->sample[t].runtime - ps->sample[t-1].runtime;
+			wt = ps->sample[t].waittime - ps->sample[t-1].waittime;
 
 			prt = (rt / 1000000000) / (sampletime[t] - sampletime[t-1]);
 			wrt = (wt / 1000000000) / (sampletime[t] - sampletime[t-1]);
@@ -863,36 +860,36 @@ void svg_ps_bars(void)
 		}
 
 		/* determine where to display the process name */
-		if (sampletime[ps[i]->last] - sampletime[ps[i]->first] < 1.5)
+		if (sampletime[ps->last] - sampletime[ps->first] < 1.5)
 			/* too small to fit label inside the box */
-			wt = ps[i]->last;
+			wt = ps->last;
 		else
-			wt = ps[i]->first;
+			wt = ps->first;
 
 		/* text label of process name */
 		svg("  <text x=\"%.03f\" y=\"%i\">%s [%i] <tspan class=\"run\">%.03fs</tspan></text>\n",
 		    time_to_graph(sampletime[wt] - graph_start) + 5,
 		    ps_to_graph(j) + 14,
-		    ps[i]->name,
-		    ps[i]->pid,
-		    (ps[i]->sample[ps[i]->last].runtime - ps[i]->sample[ps[i]->first].runtime) / 1000000000.0);
+		    ps->name,
+		    ps->pid,
+		    (ps->sample[ps->last].runtime - ps->sample[ps->first].runtime) / 1000000000.0);
 
 		/* paint lines to the parent process */
-		if (ps[ps[i]->ppid]) {
+		if (ps->parent) {
 			/* horizontal part */
 			svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%i\" x2=\"%.03f\" y2=\"%i\" />\n",
 			    time_to_graph(starttime - graph_start),
 			    ps_to_graph(j) + 10,
-			    ps[ps[i]->ppid]->pos_x,
+			    ps->parent->pos_x,
 			    ps_to_graph(j) + 10);
 
 			/* one vertical line connecting all the horizontal ones up */
-			if (!ps[i]->next)
+			if (!ps->next)
 				svg("  <line class=\"dot\" x1=\"%.03f\" y1=\"%i\" x2=\"%.03f\" y2=\"%.03f\" />\n",
-				    ps[ps[i]->ppid]->pos_x,
+				    ps->parent->pos_x,
 				    ps_to_graph(j) + 10,
-				    ps[ps[i]->ppid]->pos_x,
-				    ps[ps[i]->ppid]->pos_y);
+				    ps->parent->pos_x,
+				    ps->parent->pos_y);
 		}
 
 		j++; /* count boxes */
@@ -905,7 +902,14 @@ void svg_ps_bars(void)
 	/* make sure we start counting from the point where we actually have
 	 * data: assume that bootchart's first sample is when data started
 	 */
-	for (i = ps[pid]->first; i < samples - (hz / 2); i++) {
+	ps = ps_first;
+	while (ps->next_ps) {
+		ps = ps->next_ps;
+		if (ps->pid == pid)
+			break;
+	}
+
+	for (i = ps->first; i < samples - (hz / 2); i++) {
 		double crt;
 		double brt;
 		int c;
@@ -914,7 +918,7 @@ void svg_ps_bars(void)
 		crt = 0.0;
 		for (c = 0; c < cpus; c++)
 			crt += cpustat[c].sample[i + (hz / 2)].runtime - cpustat[c].sample[i].runtime;
-		brt = ps[pid]->sample[i + (hz / 2)].runtime - ps[pid]->sample[i].runtime;
+		brt = ps->sample[i + (hz / 2)].runtime - ps->sample[i].runtime;
 
 		/*
 		 * our definition of "idle":
@@ -941,26 +945,27 @@ void svg_ps_bars(void)
 }
 
 
-void svg_top_ten_cpu(void)
+static void svg_top_ten_cpu(void)
 {
 	struct ps_struct *top[10];
 	struct ps_struct emptyps;
-	int i, n, m;
+	struct ps_struct *ps;
+	int n, m;
 
 	memset(&emptyps, 0, sizeof(emptyps));
 	for (n=0; n < 10; n++)
 		top[n] = &emptyps;
 
 	/* walk all ps's and setup ptrs */
-	i = 0;
-	while ((i = get_next_ps(i))) {
+	ps = ps_first;
+	while ((ps = get_next_ps(ps))) {
 		for (n = 0; n < 10; n++) {
-			if (ps[i]->total <= top[n]->total)
+			if (ps->total <= top[n]->total)
 				continue;
 			/* cascade insert */
 			for (m = 9; m > n; m--)
 				top[m] = top[m-1];
-			top[n] = ps[i];
+			top[n] = ps;
 			break;
 		}
 	}
@@ -975,26 +980,27 @@ void svg_top_ten_cpu(void)
 }
 
 
-void svg_top_ten_pss(void)
+static void svg_top_ten_pss(void)
 {
 	struct ps_struct *top[10];
 	struct ps_struct emptyps;
-	int i, n, m;
+	struct ps_struct *ps;
+	int n, m;
 
 	memset(&emptyps, 0, sizeof(emptyps));
 	for (n=0; n < 10; n++)
 		top[n] = &emptyps;
 
 	/* walk all ps's and setup ptrs */
-	i = 0;
-	while ((i = get_next_ps(i))) {
+	ps = ps_first;
+	while ((ps = get_next_ps(ps))) {
 		for (n = 0; n < 10; n++) {
-			if (ps[i]->pss_max <= top[n]->pss_max)
+			if (ps->pss_max <= top[n]->pss_max)
 				continue;
 			/* cascade insert */
 			for (m = 9; m > n; m--)
 				top[m] = top[m-1];
-			top[n] = ps[i];
+			top[n] = ps;
 			break;
 		}
 	}
@@ -1011,17 +1017,19 @@ void svg_top_ten_pss(void)
 
 void svg_do(void)
 {
-	int i = 0;
+	struct ps_struct *ps;
 
 	memset(&str, 0, sizeof(str));
+
+	ps = ps_first;
 
 	/* count initcall thread count first */
 	svg_do_initcall(1);
 	ksize = (kcount ? ps_to_graph(kcount) + (scale_y * 2) : 0);
 
 	/* then count processes */
-	while ((i = get_next_ps(i))) {
-		if (!ps_filter(i))
+	while ((ps = get_next_ps(ps))) {
+		if (!ps_filter(ps))
 			pcount++;
 		else
 			pfiltered++;
