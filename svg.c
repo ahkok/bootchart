@@ -260,7 +260,6 @@ static void svg_pss_graph(void)
 {
 	struct ps_struct *ps;
 	int i;
-	int p;
 
 	svg("\n\n<!-- Pss memory size graph -->\n");
 
