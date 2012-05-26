@@ -216,6 +216,13 @@ schedstat_next:
 			ps = ps->next_ps;
 			ps->pid = pid;
 
+			ps->sample = malloc(sizeof(struct ps_sched_struct) * len);
+			if (!ps->sample) {
+				perror("malloc(ps_struct)");
+				exit (EXIT_FAILURE);
+			}
+			memset(ps->sample, 0, sizeof(struct ps_sched_struct) * len);
+
 			pscount++;
 
 			/* mark our first sample */

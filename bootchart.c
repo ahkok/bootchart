@@ -310,8 +310,10 @@ int main(int argc, char *argv[])
 	while (ps->next_ps) {
 		struct ps_struct *old = ps;
 		ps = ps->next_ps;
+		free(old->sample);
 		free(old);
 	}
+	free(ps->sample);
 	free(ps);
 
 	/* don't complain when overrun once, happens most commonly on 1st sample */

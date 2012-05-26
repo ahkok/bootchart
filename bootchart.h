@@ -79,7 +79,7 @@ struct ps_struct {
 	double pos_x;
 	double pos_y;
 
-	struct ps_sched_struct sample[MAXSAMPLES];
+	struct ps_sched_struct *sample;
 };
 
 
