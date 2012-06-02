@@ -98,8 +98,8 @@ void log_sample(int sample)
 	char *m;
 	int c;
 	int p;
-	int s;
-	int n;
+	ssize_t s;
+	ssize_t n;
 	struct dirent *ent;
 
 	if (!vmstat) {
@@ -357,14 +357,15 @@ schedstat_next:
 		}
 
 		while (1) {
+			int p;
+
 			/* skip one line, this contains the object mapped */
-			if (fgets(buf, sizeof(buf) -1, ps->smaps) == NULL)
+			if (fgets(buf, sizeof(buf), ps->smaps) == NULL)
 				break;
 			/* then there's a 28 char 14 line block */
 			if (fread(buf, 1, 28 * 14, ps->smaps) != 28 * 14)
 				break;
 
-			int p;
 			p = atoi(&buf[61]);
 			ps->sample[sample].pss += p;
 		}

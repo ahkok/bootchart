@@ -33,7 +33,7 @@
 
 static char str[8092];
 
-#define svg(a...) do { sprintf(str, ## a); fputs(str, of); fflush(of); } while (0)
+#define svg(a...) do { snprintf(str, sizeof(str), ## a); fputs(str, of); fflush(of); } while (0)
 
 static char *colorwheel[12] = {
 	"rgb(255,32,32)",  // red

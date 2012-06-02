@@ -292,7 +292,7 @@ int main(int argc, char *argv[])
 
 	t = time(NULL);
 	strftime(datestr, sizeof(datestr), "%Y%m%d-%H%M", localtime(&t));
-	sprintf(output_file, "%s/bootchart-%s.svg", output_path, datestr);
+	snprintf(output_file, PATH_MAX, "%s/bootchart-%s.svg", output_path, datestr);
 
 	of = fopen(output_file, "w");
 	if (!of) {
