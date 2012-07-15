@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if (freq < 1) {
+	if (hz < 1) {
 		fprintf(stderr, "Error: Frequency needs to be > 0\n");
 		exit(EXIT_FAILURE);
 	}
