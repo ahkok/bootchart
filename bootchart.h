@@ -82,6 +82,7 @@ struct ps_struct {
 	struct ps_sched_struct *sample;
 };
 
+extern int entropy_avail[];
 
 extern double graph_start;
 extern double log_start;
@@ -93,6 +94,7 @@ extern int pscount;
 extern int relative;
 extern int filter;
 extern int pss;
+extern int entropy;
 extern int initcall;
 extern int samples;
 extern int cpus;

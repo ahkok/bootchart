@@ -56,6 +56,7 @@ static int pcount = 0;
 static int kcount = 0;
 static int psize = 0;
 static int ksize = 0;
+static int esize = 0;
 
 
 static void svg_header(void)
@@ -70,7 +71,7 @@ static void svg_header(void)
 	/* height is variable based on pss, psize, ksize */
 	h = 400 + (scale_y * 30) /* base graphs and title */
 	    + (pss ? (100 * scale_y) + (scale_y * 7) : 0) /* pss estimate */
-	    + psize + ksize;
+	    + psize + ksize + esize;
 
 	svg("<?xml version=\"1.0\" standalone=\"no\"?>\n");
 	svg("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" ");
@@ -622,6 +623,28 @@ static void svg_wait_bar(void)
 }
 
 
+static void svg_entropy_bar(void)
+{
+	int i;
+
+	svg("<!-- entropy pool graph -->\n");
+
+	svg("<text class=\"t2\" x=\"5\" y=\"-15\">Entropy pool size</text>\n");
+	/* surrounding box */
+	svg_graph_box(5);
+
+	/* bars for each sample, scale 0-4096 */
+	for (i = 1; i < samples; i++) {
+		svg("<!-- entropy %.03f %i -->\n", sampletime[i], entropy_avail[i]);
+		svg("<rect class=\"cpu\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
+		    time_to_graph(sampletime[i - 1] - graph_start),
+		    ((scale_y * 5) - ((entropy_avail[i] / 4096.) * (scale_y * 5))),
+		    time_to_graph(sampletime[i] - sampletime[i - 1]),
+		    (entropy_avail[i] / 4096.) * (scale_y * 5));
+	}
+}
+
+
 static struct ps_struct *get_next_ps(struct ps_struct *ps)
 {
 	/*
@@ -1035,6 +1058,8 @@ void svg_do(void)
 	}
 	psize = ps_to_graph(pcount) + (scale_y * 2);
 
+	esize = (entropy ? scale_y * 7 : 0);
+
 	/* after this, we can draw the header with proper sizing */
 	svg_header();
 
@@ -1071,9 +1096,15 @@ void svg_do(void)
 	svg("<g transform=\"translate(10,200)\">\n");
 	svg_top_ten_cpu();
 	svg("</g>\n\n");
+	
+	if (entropy) {
+		svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 28) + ksize + psize);
+		svg_entropy_bar();
+		svg("</g>\n\n");
+	}
 
 	if (pss) {
-		svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 28) + ksize + psize);
+		svg("<g transform=\"translate(10,%d)\">\n", 400 + (scale_y * 28) + ksize + psize + esize);
 		svg_pss_graph();
 		svg("</g>\n\n");
 
@@ -1081,6 +1112,7 @@ void svg_do(void)
 		svg_top_ten_pss();
 		svg("</g>\n\n");
 	}
+
 
 	/* svg footer */
 	svg("\n</svg>\n");
