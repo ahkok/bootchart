@@ -98,6 +98,7 @@ void log_sample(int sample)
 	char *m;
 	int c;
 	int p;
+	int e_fd;
 	ssize_t s;
 	ssize_t n;
 	struct dirent *ent;
@@ -170,6 +171,18 @@ schedstat_next:
 		m = bufgetline(m);
 		if (!m)
 			break;
+	}
+
+	if (entropy) {
+		if (!e_fd) {
+			e_fd = open("/proc/sys/kernel/random/entropy_avail", O_RDONLY);
+		}
+
+		if (e_fd) {
+			n = pread(e_fd, buf, sizeof(buf) - 1, 0);
+			if (n > 0)
+				entropy_avail[sample] = atoi(buf);
+		}
 	}
 
 	/* all the per-process stuff goes here */

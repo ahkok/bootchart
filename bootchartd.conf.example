@@ -63,6 +63,15 @@
 #pss=0
 
 #
+# Entropy pool graph
+#
+# Enabling this option will make bootchart log the size of the
+# entropy_avail. This may be of interest for driver developers or platform
+# builders. This option is disabled by default.
+#
+#entropy=0
+
+#
 # scale_x - horizontal graph scale
 #
 # Modifies the default horizontal (time) scale factor.  The number given

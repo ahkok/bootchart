@@ -32,6 +32,7 @@ double log_start;
 double sampletime[MAXSAMPLES];
 struct ps_struct *ps_first;
 struct block_stat_struct blockstat[MAXSAMPLES];
+int entropy_avail[MAXSAMPLES];
 struct cpu_stat_struct cpustat[MAXCPUS];
 int pscount;
 int cpus;
@@ -41,6 +42,7 @@ int overrun = 0;
 static int exiting = 0;
 
 /* graph defaults */
+int entropy = 0;
 int initcall = 1;
 int relative;
 int filter = 1;
@@ -121,6 +123,8 @@ int main(int argc, char *argv[])
 				scale_x = atoi(val);
 			if (!strcmp(key, "scale_y"))
 				scale_y = atoi(val);
+			if (!strcmp(key, "entropy"))
+				entropy = atoi(val);
 		}
 		fclose(f);
 	}
@@ -137,12 +141,13 @@ int main(int argc, char *argv[])
 			{"help", 0, NULL, 'h'},
 			{"scale-x", 1, NULL, 'x'},
 			{"scale-y", 1, NULL, 'y'},
+			{"entropy", 0, NULL, 'e'},
 			{NULL, 0, NULL, 0}
 		};
 
 		int index = 0, c;
 
-		c = getopt_long(argc, argv, "rpf:n:o:i:Fhx:y:", opts, &index);
+		c = getopt_long(argc, argv, "erpf:n:o:i:Fhx:y:", opts, &index);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -173,6 +178,9 @@ int main(int argc, char *argv[])
 		case 'y':
 			scale_y = atoi(optarg);
 			break;
+		case 'e':
+			entropy = 1;
+			break;
 		case 'h':
 			fprintf(stderr, "Usage: %s [OPTIONS]\n", argv[0]);
 			fprintf(stderr, " --rel,     -r            Record time relative to recording\n");
@@ -181,6 +189,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, " --scale-x, -x N          Scale the graph horizontally [%d] \n", scale_x);
 			fprintf(stderr, " --scale-y, -y N          Scale the graph vertically [%d] \n", scale_y);
 			fprintf(stderr, " --pss,     -p            Enable PSS graph (CPU intensive)\n");
+			fprintf(stderr, " --entropy, -e            Enable the entropy_avail graph\n");
 			fprintf(stderr, " --output,  -o [PATH]     Path to output files [%s]\n", output_path);
 			fprintf(stderr, " --init,    -i [PATH]     Path to init executable [%s]\n", init_path);
 			fprintf(stderr, " --filter,  -F            Disable filtering of processes from the graph\n");
