@@ -98,7 +98,7 @@ void log_sample(int sample)
 	char *m;
 	int c;
 	int p;
-	int e_fd;
+	static int e_fd;
 	ssize_t s;
 	ssize_t n;
 	struct dirent *ent;
