@@ -635,7 +635,7 @@ static void svg_entropy_bar(void)
 
 	/* bars for each sample, scale 0-4096 */
 	for (i = 1; i < samples; i++) {
-		svg("<!-- entropy %.03f %i -->\n", sampletime[i], entropy_avail[i]);
+		/* svg("<!-- entropy %.03f %i -->\n", sampletime[i], entropy_avail[i]); */
 		svg("<rect class=\"cpu\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 		    time_to_graph(sampletime[i - 1] - graph_start),
 		    ((scale_y * 5) - ((entropy_avail[i] / 4096.) * (scale_y * 5))),
