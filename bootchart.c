@@ -23,6 +23,7 @@
 #include <time.h>
 #include <getopt.h>
 #include <limits.h>
+#include <errno.h>
 
 
 #include "bootchart.h"
@@ -281,6 +282,10 @@ int main(int argc, char *argv[])
 
 			res = nanosleep(&req, NULL);
 			if (res) {
+				if (errno == EINTR) {
+					/* caught signal, probably HUP! */
+					break;
+				}
 				perror("nanosleep()");
 				exit (EXIT_FAILURE);
 			}
