@@ -49,7 +49,7 @@ int filter = 1;
 int pss = 0;
 int samples;
 int len = 500; /* we record len+1 (1 start sample) */
-int hz = 25;   /* 20 seconds log time */
+double hz = 25.0;   /* 20 seconds log time */
 int scale_x = 100; /* 100px = 1sec */
 int scale_y = 20;  /* 16px = 1 process bar */
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 			if (!strcmp(key, "samples"))
 				len = atoi(val);
 			if (!strcmp(key, "freq"))
-				hz = atoi(val);
+				hz = atof(val);
 			if (!strcmp(key, "rel"))
 				relative = atoi(val);
 			if (!strcmp(key, "filter"))
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 			relative = 1;
 			break;
 		case 'f':
-			hz = atoi(optarg);
+			hz = atof(optarg);
 			break;
 		case 'F':
 			filter = 0;
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 		case 'h':
 			fprintf(stderr, "Usage: %s [OPTIONS]\n", argv[0]);
 			fprintf(stderr, " --rel,     -r            Record time relative to recording\n");
-			fprintf(stderr, " --freq,    -f N          Sample frequency [%d]\n", hz);
+			fprintf(stderr, " --freq,    -f N          Sample frequency [%f]\n", hz);
 			fprintf(stderr, " --samples, -n N          Stop sampling at [%d] samples\n", len);
 			fprintf(stderr, " --scale-x, -x N          Scale the graph horizontally [%d] \n", scale_x);
 			fprintf(stderr, " --scale-y, -y N          Scale the graph vertically [%d] \n", scale_y);
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if (hz < 1) {
+	if (hz <= 0.0) {
 		fprintf(stderr, "Error: Frequency needs to be > 0\n");
 		exit(EXIT_FAILURE);
 	}
@@ -249,6 +249,7 @@ int main(int argc, char *argv[])
 		int res;
 		double sample_stop;
 		struct timespec req;
+		long newint_s;
 		long newint_ns;
 
 		sampletime[samples] = gettime_ns();
@@ -262,7 +263,8 @@ int main(int argc, char *argv[])
 		sample_stop = gettime_ns();
 
 		req.tv_sec = 0;
-		newint_ns = interval - ((sample_stop - sampletime[samples]) * 1000000000);
+		newint_s = (interval - (sample_stop - sampletime[samples])) / 1000000000;
+		newint_ns = interval - (newint_s * 1000000000) - ((sample_stop - sampletime[samples]) * 1000000000);
 
 		/*
 		 * check if we have not consumed our entire timeslice. If we
@@ -271,6 +273,7 @@ int main(int argc, char *argv[])
 		 * time
 		 */
 		if (newint_ns > 0) {
+			req.tv_sec = newint_s;
 			req.tv_nsec = newint_ns;
 
 			res = nanosleep(&req, NULL);

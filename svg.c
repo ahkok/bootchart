@@ -939,8 +939,8 @@ static void svg_ps_bars(void)
 		/* subtract bootchart cpu utilization from total */
 		crt = 0.0;
 		for (c = 0; c < cpus; c++)
-			crt += cpustat[c].sample[i + (hz / 2)].runtime - cpustat[c].sample[i].runtime;
-		brt = ps->sample[i + (hz / 2)].runtime - ps->sample[i].runtime;
+			crt += cpustat[c].sample[i + ((int)hz / 2)].runtime - cpustat[c].sample[i].runtime;
+		brt = ps->sample[i + ((int)hz / 2)].runtime - ps->sample[i].runtime;
 
 		/*
 		 * our definition of "idle":

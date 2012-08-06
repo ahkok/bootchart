@@ -99,7 +99,7 @@ extern int initcall;
 extern int samples;
 extern int cpus;
 extern int len;
-extern int hz;
+extern double hz;
 extern int scale_x;
 extern int scale_y;
 extern int overrun;
