@@ -237,8 +237,7 @@ int main(int argc, char *argv[])
 	/* handle TERM/INT nicely */
 	memset(&sig, 0, sizeof(struct sigaction));
 	sig.sa_handler = signal_handler;
-	sigaction(SIGTERM, &sig, NULL);
-	sigaction(SIGINT, &sig, NULL);
+	sigaction(SIGHUP, &sig, NULL);
 
 	interval = (1.0 / hz) * 1000000000.0;
 
