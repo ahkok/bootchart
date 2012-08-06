@@ -248,8 +248,10 @@ int main(int argc, char *argv[])
 		int res;
 		double sample_stop;
 		struct timespec req;
-		long newint_s;
+		time_t newint_s;
 		long newint_ns;
+		double elapsed;
+		double timeleft;
 
 		sampletime[samples] = gettime_ns();
 
@@ -261,9 +263,11 @@ int main(int argc, char *argv[])
 
 		sample_stop = gettime_ns();
 
-		req.tv_sec = 0;
-		newint_s = (interval - (sample_stop - sampletime[samples])) / 1000000000;
-		newint_ns = interval - (newint_s * 1000000000) - ((sample_stop - sampletime[samples]) * 1000000000);
+		elapsed = (sample_stop - sampletime[samples]) * 1000000000.0;
+		timeleft = interval - elapsed;
+
+		newint_s = (time_t)(timeleft / 1000000000.0);
+		newint_ns = (long)(timeleft - (newint_s * 1000000000.0));
 
 		/*
 		 * check if we have not consumed our entire timeslice. If we
@@ -271,7 +275,7 @@ int main(int argc, char *argv[])
 		 * we'll lose all the missed samples and overrun our total
 		 * time
 		 */
-		if (newint_ns > 0) {
+		if ((newint_ns > 0) || (newint_s > 0)) {
 			req.tv_sec = newint_s;
 			req.tv_nsec = newint_ns;
 
