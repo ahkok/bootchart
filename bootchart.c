@@ -51,8 +51,8 @@ int pss = 0;
 int samples;
 int len = 500; /* we record len+1 (1 start sample) */
 double hz = 25.0;   /* 20 seconds log time */
-int scale_x = 100; /* 100px = 1sec */
-int scale_y = 20;  /* 16px = 1 process bar */
+double scale_x = 100.0; /* 100px = 1sec */
+double scale_y = 20.0;  /* 16px = 1 process bar */
 
 char init_path[PATH_MAX] = "/sbin/init";
 char output_path[PATH_MAX] = "/var/log";
@@ -121,9 +121,9 @@ int main(int argc, char *argv[])
 			if (!strcmp(key, "init"))
 				strncpy(init_path, val, PATH_MAX - 1);
 			if (!strcmp(key, "scale_x"))
-				scale_x = atoi(val);
+				scale_x = atof(val);
 			if (!strcmp(key, "scale_y"))
-				scale_y = atoi(val);
+				scale_y = atof(val);
 			if (!strcmp(key, "entropy"))
 				entropy = atoi(val);
 		}
@@ -174,10 +174,10 @@ int main(int argc, char *argv[])
 			pss = 1;
 			break;
 		case 'x':
-			scale_x = atoi(optarg);
+			scale_x = atof(optarg);
 			break;
 		case 'y':
-			scale_y = atoi(optarg);
+			scale_y = atof(optarg);
 			break;
 		case 'e':
 			entropy = 1;
@@ -187,8 +187,8 @@ int main(int argc, char *argv[])
 			fprintf(stderr, " --rel,     -r            Record time relative to recording\n");
 			fprintf(stderr, " --freq,    -f N          Sample frequency [%f]\n", hz);
 			fprintf(stderr, " --samples, -n N          Stop sampling at [%d] samples\n", len);
-			fprintf(stderr, " --scale-x, -x N          Scale the graph horizontally [%d] \n", scale_x);
-			fprintf(stderr, " --scale-y, -y N          Scale the graph vertically [%d] \n", scale_y);
+			fprintf(stderr, " --scale-x, -x N          Scale the graph horizontally [%f] \n", scale_x);
+			fprintf(stderr, " --scale-y, -y N          Scale the graph vertically [%f] \n", scale_y);
 			fprintf(stderr, " --pss,     -p            Enable PSS graph (CPU intensive)\n");
 			fprintf(stderr, " --entropy, -e            Enable the entropy_avail graph\n");
 			fprintf(stderr, " --output,  -o [PATH]     Path to output files [%s]\n", output_path);

@@ -98,6 +98,7 @@ void log_sample(int sample)
 	char *m;
 	int c;
 	int p;
+	int mod;
 	static int e_fd;
 	ssize_t s;
 	ssize_t n;
@@ -388,7 +389,8 @@ schedstat_next:
 
 catch_rename:
 		/* catch process rename, try to randomize time */
-		if (((samples - ps->first) + pid) % (int)((hz < 1.0) ? 2 : (hz / 4)) == 0) {
+		mod = (hz < 4.0) ? 4.0 : (hz / 4.0);
+		if (((samples - ps->first) + pid) % (int)(mod) == 0) {
 
 			/* re-fetch name */
 			/* get name, start time */
