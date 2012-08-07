@@ -212,7 +212,7 @@ static void svg_title(void)
 	else
 		svg("Not detected");
 	svg("</text>\n");
-	svg("<text class=\"sec\" x=\"20\" y=\"155\">Graph data: %i samples/sec, recorded %i total, dropped %i samples, %i processes, %i filtered</text>\n",
+	svg("<text class=\"sec\" x=\"20\" y=\"155\">Graph data: %.03f samples/sec, recorded %i total, dropped %i samples, %i processes, %i filtered</text>\n",
 	    hz, len, overrun, pscount, pfiltered);
 }
 
@@ -771,14 +771,14 @@ static void svg_do_initcall(int count_only)
 			continue;
 
 		/* rect */
-		svg("  <rect class=\"krnl\" x=\"%.03f\" y=\"%i\" width=\"%.03f\" height=\"%i\" />\n",
+		svg("  <rect class=\"krnl\" x=\"%.03f\" y=\"%.03f\" width=\"%.03f\" height=\"%.03f\" />\n",
 		    time_to_graph(t - (usecs / 1000000.0)),
 		    ps_to_graph(kcount),
 		    time_to_graph(usecs / 1000000.0),
 		    ps_to_graph(1));
 
 		/* label */
-		svg("  <text x=\"%.03f\" y=\"%i\">%s <tspan class=\"run\">%.03fs</tspan></text>\n",
+		svg("  <text x=\"%.03f\" y=\"%.03f\">%s <tspan class=\"run\">%.03fs</tspan></text>\n",
 		    time_to_graph(t - (usecs / 1000000.0)) + 5,
 		    ps_to_graph(kcount) + 15,
 		    func,
