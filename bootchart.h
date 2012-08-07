@@ -15,7 +15,7 @@
 
 #include "config.h"
 
-#define MAXCPUS         8
+#define MAXCPUS        16
 #define MAXPIDS     65535
 #define MAXSAMPLES   8192
 
