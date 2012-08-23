@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([bootchart], [1.19], [auke-jan.h.kok@intel.com])
+AC_INIT([bootchart], [1.20], [auke-jan.h.kok@intel.com])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_SRCDIR([bootchart.c])
 AC_CONFIG_HEADERS([config.h])
